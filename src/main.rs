@@ -11,6 +11,21 @@ impl Point {
 }
 
 #[derive(Debug)]
+struct Cell {
+    coords: (Point, Point),
+    quads_filled: [bool; 4],
+}
+
+impl Cell {
+    fn new(p1: Point, p2: Point) -> Self {
+        Cell {
+            coords: (p1, p2),
+            quads_filled: [false, false, false, false],
+        }
+    }
+}
+
+#[derive(Debug)]
 struct GridConfig {
     width: f64,
     height: f64,
@@ -18,7 +33,7 @@ struct GridConfig {
 
 #[derive(Debug)]
 struct Grid {
-    grid: Vec<Vec<(Point, Point)>>,
+    grid: Vec<Vec<Cell>>,
     config: GridConfig,
 }
 
@@ -37,7 +52,7 @@ impl Grid {
                         .map(|i| {
                             let x = i as f64 * x_unit;
                             let y = j as f64 * y_unit;
-                            (Point::new(x, y), Point::new(x + x_unit, y + y_unit))
+                            Cell::new(Point::new(x, y), Point::new(x + x_unit, y + y_unit))
                         })
                         .collect()
                 })
@@ -45,8 +60,26 @@ impl Grid {
         }
     }
 
-    fn clear(self: Grid) -> Grid {
-        Grid::new(self.config)
+    fn each_cell_mut<F>(&mut self, f: F)
+    where
+        F: Fn(&mut Cell) -> (),
+    {
+        self.grid
+            .iter_mut()
+            .for_each(|row| row.iter_mut().for_each(|cell| f(cell)));
+    }
+
+    fn clear(&mut self) {
+        self.each_cell_mut(|cell| {
+            cell.quads_filled[0] = false;
+            cell.quads_filled[1] = false;
+            cell.quads_filled[2] = false;
+            cell.quads_filled[3] = false;
+        });
+    }
+
+    fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64) {
+        render(self, &(Point::new(x1, y1), Point::new(x2, y2)));
     }
 }
 
@@ -105,15 +138,20 @@ fn get_quadrants(coords: &(Point, Point)) -> [(Point, Point); 4] {
     ]
 }
 
-fn render_line(coords: &(Point, Point), line: &(Point, Point)) -> char {
+fn render_line(cell: &mut Cell, line: &(Point, Point)) {
+    let coords = &cell.coords;
     if !intersects(coords, line) {
-        return ' ';
+        return;
     }
     let quadrants = get_quadrants(coords);
-    let q0 = intersects(&quadrants[0], line);
-    let q1 = intersects(&quadrants[1], line);
-    let q2 = intersects(&quadrants[2], line);
-    let q3 = intersects(&quadrants[3], line);
+    cell.quads_filled[0] = cell.quads_filled[0] || intersects(&quadrants[0], line);
+    cell.quads_filled[1] = cell.quads_filled[1] || intersects(&quadrants[1], line);
+    cell.quads_filled[2] = cell.quads_filled[2] || intersects(&quadrants[2], line);
+    cell.quads_filled[3] = cell.quads_filled[3] || intersects(&quadrants[3], line);
+}
+
+fn print_cell(cell: &Cell) -> char {
+    let q = cell.quads_filled;
 
     // 1: ,.
     //    '`
@@ -124,46 +162,46 @@ fn render_line(coords: &(Point, Point), line: &(Point, Point)) -> char {
     //    bd
     // 4:  #
 
-    match q0 {
-        true => match q1 {
-            true => match q2 {
-                true => match q3 {
+    match q[0] {
+        true => match q[1] {
+            true => match q[2] {
+                true => match q[3] {
                     true => '#',  // 1111
                     false => 'P', // 1110
                 },
-                false => match q3 {
+                false => match q[3] {
                     true => '¶', // 1101
                     false => '"', // 1100
                 },
             },
-            false => match q2 {
-                true => match q3 {
+            false => match q[2] {
+                true => match q[3] {
                     true => 'b',  // 1011
                     false => '[', // 1010
                 },
-                false => match q3 {
+                false => match q[3] {
                     true => '\\', // 1001
                     false => '`', // 1000
                 },
             },
         },
-        false => match q1 {
-            true => match q2 {
-                true => match q3 {
+        false => match q[1] {
+            true => match q[2] {
+                true => match q[3] {
                     true => 'd',  // 0111
                     false => '/', // 0110
                 },
-                false => match q3 {
+                false => match q[3] {
                     true => ']',   // 0101
                     false => '\'', // 0100
                 },
             },
-            false => match q2 {
-                true => match q3 {
+            false => match q[2] {
+                true => match q[3] {
                     true => '_',  // 0011
                     false => ',', // 0010
                 },
-                false => match q3 {
+                false => match q[3] {
                     true => '.',  // 0001
                     false => ' ', // 0000
                 },
@@ -172,24 +210,28 @@ fn render_line(coords: &(Point, Point), line: &(Point, Point)) -> char {
     }
 }
 
-fn render(grid: &Grid, line: &(Point, Point)) {
-    grid.grid.iter().for_each(|row| {
-        println!(
-            "{}",
-            row.iter()
-                .map(|cell| render_line(&cell, &line))
-                .collect::<String>()
-        )
-    })
+fn render(grid: &mut Grid, line: &(Point, Point)) {
+    grid.each_cell_mut(|mut cell| {
+        render_line(&mut cell, &line);
+    });
 }
 
-fn sleep(millis: u64) {
-    std::thread::sleep(std::time::Duration::from_millis(millis));
+fn print(grid: &Grid) {
+    grid.grid
+        .iter()
+        .for_each(|row| println!("{}", row.iter().map(print_cell).collect::<String>()))
+}
+
+fn sleep_less(subtract_amount: u64, millis: u64) {
+    if subtract_amount >= millis {
+        return;
+    }
+    std::thread::sleep(std::time::Duration::from_millis(millis - subtract_amount));
 }
 
 fn draw<F>(draw_fn: F)
 where
-    F: Fn(&Grid, usize) -> (),
+    F: Fn(&mut Grid, usize) -> (),
 {
     let mut grid = Grid::new(GridConfig {
         width: 100.,
@@ -197,12 +239,15 @@ where
     });
     for frame in 0.. {
         let now = std::time::Instant::now();
+
+        draw_fn(&mut grid, frame);
         print!("{}[2J", 27 as char);
-        draw_fn(&grid, frame);
+        print(&grid);
+        grid.clear();
+
         let spent = now.elapsed().as_millis();
         println!("time per frame: {}ms", spent);
-        sleep(60 - spent as u64);
-        // grid = grid.clear();
+        sleep_less(spent as u64, 60);
     }
 }
 
@@ -211,10 +256,23 @@ fn main() {
         let angle = (2. * 3.14159 / 60.) * frame as f64;
         let x = angle.cos();
         let y = angle.sin();
-        let line = (
-            Point::new(50., 50.),
-            Point::new(50. + (x * 30.), 50. + (y * 30.)),
+        grid.line(
+            50. - (x * 5.),
+            50. - (y * 5.),
+            50. + (x * 30.),
+            50. + (y * 30.),
         );
-        render(grid, &line);
+        grid.line(
+            50. - (y * 3.),
+            50. - (x * 3.),
+            50. + (y * 10.),
+            50. + (x * 10.),
+        );
+        grid.line(
+            70. - (y * 5.),
+            30. - (x * 5.),
+            20. + (y * 10.),
+            30. + (x * 10.),
+        );
     });
 }
