@@ -79,7 +79,17 @@ impl Grid {
     }
 
     fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64) {
-        render(self, &(Point::new(x1, y1), Point::new(x2, y2)));
+        let line = (Point::new(x1, y1), Point::new(x2, y2));
+        self.each_cell_mut(|mut cell| {
+            render_line(&mut cell, &line);
+        });
+    }
+
+    fn circle(&mut self, cx: f64, cy: f64, r: f64) {
+        let circle = (Point::new(cx, cy), r);
+        self.each_cell_mut(|mut cell| {
+            render_circle(&mut cell, &circle);
+        });
     }
 }
 
@@ -94,6 +104,28 @@ fn lines_intersect(line1: &(Point, Point), line2: &(Point, Point)) -> bool {
     let gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
 
     0. < lambda && lambda < 1. && 0. < gamma && gamma < 1.
+}
+
+fn circle_intersect(line: &(Point, Point), circle: &(Point, f64)) -> bool {
+    let (Point { x: cx, y: cy }, r) = circle;
+    let ax = line.0.x - cx;
+    let ay = line.0.y - cy;
+    let bx = line.1.x - cx;
+    let by = line.1.y - cy;
+    let a = (bx - ax).powf(2.) + (by - ay).powf(2.);
+    let b = 2. * (ax * (bx - ax) + ay * (by - ay));
+    let c = ax.powf(2.) + ay.powf(2.) - r.powf(2.);
+    let disc = b.powf(2.) - 4. * a * c;
+    if disc <= 0. {
+        return false;
+    }
+    let sqrtdisc = disc.sqrt();
+    let t1 = (-b + sqrtdisc) / (2. * a);
+    let t2 = (-b - sqrtdisc) / (2. * a);
+    if (0. < t1 && t1 < 1.) || (0. < t2 && t2 < 1.) {
+        return true;
+    }
+    false
 }
 
 fn top_line(coords: &(Point, Point)) -> (Point, Point) {
@@ -112,11 +144,18 @@ fn left_line(coords: &(Point, Point)) -> (Point, Point) {
     (coords.0.clone(), Point::new(coords.0.x, coords.1.y))
 }
 
-fn intersects(coords: &(Point, Point), line: &(Point, Point)) -> bool {
+fn line_intersects_coords(coords: &(Point, Point), line: &(Point, Point)) -> bool {
     lines_intersect(&top_line(coords), line)
         || lines_intersect(&right_line(coords), line)
         || lines_intersect(&bottom_line(coords), line)
         || lines_intersect(&left_line(coords), line)
+}
+
+fn circle_intersects_coords(coords: &(Point, Point), circle: &(Point, f64)) -> bool {
+    circle_intersect(&top_line(coords), circle)
+        || circle_intersect(&right_line(coords), circle)
+        || circle_intersect(&bottom_line(coords), circle)
+        || circle_intersect(&left_line(coords), circle)
 }
 
 fn get_quadrants(coords: &(Point, Point)) -> [(Point, Point); 4] {
@@ -140,14 +179,26 @@ fn get_quadrants(coords: &(Point, Point)) -> [(Point, Point); 4] {
 
 fn render_line(cell: &mut Cell, line: &(Point, Point)) {
     let coords = &cell.coords;
-    if !intersects(coords, line) {
+    if !line_intersects_coords(coords, line) {
         return;
     }
     let quadrants = get_quadrants(coords);
-    cell.quads_filled[0] = cell.quads_filled[0] || intersects(&quadrants[0], line);
-    cell.quads_filled[1] = cell.quads_filled[1] || intersects(&quadrants[1], line);
-    cell.quads_filled[2] = cell.quads_filled[2] || intersects(&quadrants[2], line);
-    cell.quads_filled[3] = cell.quads_filled[3] || intersects(&quadrants[3], line);
+    cell.quads_filled[0] = cell.quads_filled[0] || line_intersects_coords(&quadrants[0], line);
+    cell.quads_filled[1] = cell.quads_filled[1] || line_intersects_coords(&quadrants[1], line);
+    cell.quads_filled[2] = cell.quads_filled[2] || line_intersects_coords(&quadrants[2], line);
+    cell.quads_filled[3] = cell.quads_filled[3] || line_intersects_coords(&quadrants[3], line);
+}
+
+fn render_circle(cell: &mut Cell, circle: &(Point, f64)) {
+    let coords = &cell.coords;
+    if !circle_intersects_coords(coords, circle) {
+        return;
+    }
+    let quadrants = get_quadrants(coords);
+    cell.quads_filled[0] = cell.quads_filled[0] || circle_intersects_coords(&quadrants[0], circle);
+    cell.quads_filled[1] = cell.quads_filled[1] || circle_intersects_coords(&quadrants[1], circle);
+    cell.quads_filled[2] = cell.quads_filled[2] || circle_intersects_coords(&quadrants[2], circle);
+    cell.quads_filled[3] = cell.quads_filled[3] || circle_intersects_coords(&quadrants[3], circle);
 }
 
 fn print_cell(cell: &Cell) -> char {
@@ -210,12 +261,6 @@ fn print_cell(cell: &Cell) -> char {
     }
 }
 
-fn render(grid: &mut Grid, line: &(Point, Point)) {
-    grid.each_cell_mut(|mut cell| {
-        render_line(&mut cell, &line);
-    });
-}
-
 fn print(grid: &Grid) {
     grid.grid
         .iter()
@@ -256,6 +301,9 @@ fn main() {
         let angle = (2. * 3.14159 / 60.) * frame as f64;
         let x = angle.cos();
         let y = angle.sin();
+        let slow_angle = (2. * 3.14159 / 120.) * frame as f64;
+        let slow_x = slow_angle.cos();
+        let slow_y = slow_angle.sin();
         grid.line(
             50. - (x * 5.),
             50. - (y * 5.),
@@ -274,5 +322,6 @@ fn main() {
             20. + (y * 10.),
             30. + (x * 10.),
         );
+        grid.circle(50. + (slow_x * 10.), 50. + (slow_y * 10.), 10.);
     });
 }
