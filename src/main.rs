@@ -10,17 +10,224 @@ impl Point {
     }
 }
 
+// a pair of points defining a line segment, with some precomputed values
+#[derive(Debug)]
+struct Line {
+    start: Point,
+    end: Point,
+    dx: f64,
+    dy: f64,
+    sum_squared_deltas: f64,
+}
+
+impl Line {
+    fn new(start: Point, end: Point) -> Line {
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let sum_squared_deltas = dx.powf(2.) + dy.powf(2.);
+        Line {
+            start,
+            end,
+            dx,
+            dy,
+            sum_squared_deltas,
+        }
+    }
+
+    fn intersects_line(&self, other: &Line) -> bool {
+        let Point { x: a, y: b } = self.start;
+        let Point { x: r, y: s } = other.end;
+        let det = (self.dx) * (other.dy) - (other.dx) * (self.dy);
+        if det == 0. {
+            return false;
+        }
+        let lambda = (other.dy * (r - a) - other.dx * (s - b)) / det;
+        let gamma = (self.dx * (s - b) - self.dy * (r - a)) / det;
+
+        0. < lambda && lambda < 1. && 0. < gamma && gamma < 1.
+    }
+
+    fn intersects_circle(&self, circle: &Circle) -> bool {
+        let ax = self.start.x - circle.center.x;
+        let ay = self.start.y - circle.center.y;
+        let a = self.sum_squared_deltas;
+        let b = 2. * (ax * self.dx + ay * self.dy);
+        let c = ax.powf(2.) + ay.powf(2.) - circle.r_squared;
+        let disc = b.powf(2.) - 4. * a * c;
+        if disc <= 0. {
+            return false;
+        }
+        let sqrt_disc = disc.sqrt();
+        let t1 = (-b + sqrt_disc) / (2. * a);
+        let t2 = (-b - sqrt_disc) / (2. * a);
+
+        (0. < t1 && t1 < 1.) || (0. < t2 && t2 < 1.)
+    }
+}
+
+// a pair of points defining the bounds, with some precomputed values
+#[derive(Debug)]
+struct Rectangle {
+    top_left: Point,
+    bottom_right: Point,
+    top: Line,
+    right: Line,
+    bottom: Line,
+    left: Line,
+}
+
+impl Rectangle {
+    fn new(top_left: Point, bottom_right: Point) -> Self {
+        let top = Line::new(top_left.clone(), Point::new(bottom_right.x, top_left.y));
+        let right = Line::new(Point::new(bottom_right.x, top_left.y), bottom_right.clone());
+        let bottom = Line::new(Point::new(top_left.x, bottom_right.y), bottom_right.clone());
+        let left = Line::new(top_left.clone(), Point::new(top_left.x, bottom_right.y));
+
+        Rectangle {
+            top_left,
+            bottom_right,
+            top,
+            right,
+            bottom,
+            left,
+        }
+    }
+
+    fn overlaps_line(&self, line: &Line) -> bool {
+        self.top.intersects_line(line)
+            || self.right.intersects_line(line)
+            || self.bottom.intersects_line(line)
+            || self.left.intersects_line(line)
+    }
+
+    fn overlaps_circle(&self, circle: &Circle) -> bool {
+        self.top.intersects_circle(circle)
+            || self.right.intersects_circle(circle)
+            || self.bottom.intersects_circle(circle)
+            || self.left.intersects_circle(circle)
+    }
+}
+
+#[derive(Debug)]
+struct Circle {
+    center: Point,
+    r: f64,
+    r_squared: f64,
+}
+
+impl Circle {
+    fn new(x: f64, y: f64, r: f64) -> Circle {
+        let r_squared = r.powf(2.);
+        Circle {
+            center: Point::new(x, y),
+            r,
+            r_squared,
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Cell {
-    coords: (Point, Point),
+    coords: Rectangle,
+    quadrants: [Rectangle; 4],
     quads_filled: [bool; 4],
 }
 
 impl Cell {
     fn new(p1: Point, p2: Point) -> Self {
+        let mid_x = (p1.x + p2.x) / 2.;
+        let mid_y = (p1.y + p2.y) / 2.;
+
+        let quadrants = [
+            Rectangle::new(p1.clone(), Point::new(mid_x, mid_y)),
+            Rectangle::new(Point::new(mid_x, p1.y), Point::new(p2.x, mid_y)),
+            Rectangle::new(Point::new(p1.x, mid_y), Point::new(mid_x, p2.y)),
+            Rectangle::new(Point::new(mid_x, mid_y), p2.clone()),
+        ];
         Cell {
-            coords: (p1, p2),
+            coords: Rectangle::new(p1, p2),
+            quadrants,
             quads_filled: [false, false, false, false],
+        }
+    }
+
+    fn render_line(&mut self, line: &Line) {
+        if !self.coords.overlaps_line(line) {
+            return;
+        }
+        self.quads_filled[0] = self.quads_filled[0] || self.quadrants[0].overlaps_line(line);
+        self.quads_filled[1] = self.quads_filled[1] || self.quadrants[1].overlaps_line(line);
+        self.quads_filled[2] = self.quads_filled[2] || self.quadrants[2].overlaps_line(line);
+        self.quads_filled[3] = self.quads_filled[3] || self.quadrants[3].overlaps_line(line);
+    }
+
+    fn render_circle(&mut self, circle: &Circle) {
+        if !self.coords.overlaps_circle(circle) {
+            return;
+        }
+        self.quads_filled[0] = self.quads_filled[0] || self.quadrants[0].overlaps_circle(circle);
+        self.quads_filled[1] = self.quads_filled[1] || self.quadrants[1].overlaps_circle(circle);
+        self.quads_filled[2] = self.quads_filled[2] || self.quadrants[2].overlaps_circle(circle);
+        self.quads_filled[3] = self.quads_filled[3] || self.quadrants[3].overlaps_circle(circle);
+    }
+
+    fn print(&self) -> char {
+        let q = self.quads_filled;
+
+        // 1: ,.
+        //    '`
+        // 2: "_
+        //    []
+        //    \/
+        // 3: P¶
+        //    bd
+        // 4:  #
+
+        match q[0] {
+            true => match q[1] {
+                true => match q[2] {
+                    true => match q[3] {
+                        true => '#',  // 1111
+                        false => 'P', // 1110
+                    },
+                    false => match q[3] {
+                        true => '¶', // 1101
+                        false => '"', // 1100
+                    },
+                },
+                false => match q[2] {
+                    true => match q[3] {
+                        true => 'b',  // 1011
+                        false => '[', // 1010
+                    },
+                    false => match q[3] {
+                        true => '\\', // 1001
+                        false => '`', // 1000
+                    },
+                },
+            },
+            false => match q[1] {
+                true => match q[2] {
+                    true => match q[3] {
+                        true => 'd',  // 0111
+                        false => '/', // 0110
+                    },
+                    false => match q[3] {
+                        true => ']',   // 0101
+                        false => '\'', // 0100
+                    },
+                },
+                false => match q[2] {
+                    true => match q[3] {
+                        true => '_',  // 0011
+                        false => ',', // 0010
+                    },
+                    false => match q[3] {
+                        true => '.',  // 0001
+                        false => ' ', // 0000
+                    },
+                },
+            },
         }
     }
 }
@@ -79,192 +286,24 @@ impl Grid {
     }
 
     fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64) {
-        let line = (Point::new(x1, y1), Point::new(x2, y2));
-        self.each_cell_mut(|mut cell| {
-            render_line(&mut cell, &line);
+        let line = Line::new(Point::new(x1, y1), Point::new(x2, y2));
+        self.each_cell_mut(|cell| {
+            cell.render_line(&line);
         });
     }
 
-    fn circle(&mut self, cx: f64, cy: f64, r: f64) {
-        let circle = (Point::new(cx, cy), r);
-        self.each_cell_mut(|mut cell| {
-            render_circle(&mut cell, &circle);
+    fn circle(&mut self, x: f64, y: f64, r: f64) {
+        let circle = Circle::new(x, y, r);
+        self.each_cell_mut(|cell| {
+            cell.render_circle(&circle);
         });
     }
-}
 
-fn lines_intersect(line1: &(Point, Point), line2: &(Point, Point)) -> bool {
-    let (Point { x: a, y: b }, Point { x: c, y: d }) = line1;
-    let (Point { x: p, y: q }, Point { x: r, y: s }) = line2;
-    let det = (c - a) * (s - q) - (r - p) * (d - b);
-    if det == 0. {
-        return false;
+    fn print(&self) {
+        self.grid
+            .iter()
+            .for_each(|row| println!("{}", row.iter().map(Cell::print).collect::<String>()))
     }
-    let lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
-    let gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
-
-    0. < lambda && lambda < 1. && 0. < gamma && gamma < 1.
-}
-
-fn circle_intersect(line: &(Point, Point), circle: &(Point, f64)) -> bool {
-    let (Point { x: cx, y: cy }, r) = circle;
-    let ax = line.0.x - cx;
-    let ay = line.0.y - cy;
-    let bx = line.1.x - cx;
-    let by = line.1.y - cy;
-    let a = (bx - ax).powf(2.) + (by - ay).powf(2.);
-    let b = 2. * (ax * (bx - ax) + ay * (by - ay));
-    let c = ax.powf(2.) + ay.powf(2.) - r.powf(2.);
-    let disc = b.powf(2.) - 4. * a * c;
-    if disc <= 0. {
-        return false;
-    }
-    let sqrtdisc = disc.sqrt();
-    let t1 = (-b + sqrtdisc) / (2. * a);
-    let t2 = (-b - sqrtdisc) / (2. * a);
-    if (0. < t1 && t1 < 1.) || (0. < t2 && t2 < 1.) {
-        return true;
-    }
-    false
-}
-
-fn top_line(coords: &(Point, Point)) -> (Point, Point) {
-    (coords.0.clone(), Point::new(coords.1.x, coords.0.y))
-}
-
-fn right_line(coords: &(Point, Point)) -> (Point, Point) {
-    (Point::new(coords.1.x, coords.0.y), coords.1.clone())
-}
-
-fn bottom_line(coords: &(Point, Point)) -> (Point, Point) {
-    (Point::new(coords.0.x, coords.1.y), coords.1.clone())
-}
-
-fn left_line(coords: &(Point, Point)) -> (Point, Point) {
-    (coords.0.clone(), Point::new(coords.0.x, coords.1.y))
-}
-
-fn line_intersects_coords(coords: &(Point, Point), line: &(Point, Point)) -> bool {
-    lines_intersect(&top_line(coords), line)
-        || lines_intersect(&right_line(coords), line)
-        || lines_intersect(&bottom_line(coords), line)
-        || lines_intersect(&left_line(coords), line)
-}
-
-fn circle_intersects_coords(coords: &(Point, Point), circle: &(Point, f64)) -> bool {
-    circle_intersect(&top_line(coords), circle)
-        || circle_intersect(&right_line(coords), circle)
-        || circle_intersect(&bottom_line(coords), circle)
-        || circle_intersect(&left_line(coords), circle)
-}
-
-fn get_quadrants(coords: &(Point, Point)) -> [(Point, Point); 4] {
-    let (top_left, bottom_right) = coords;
-    let mid_x = (top_left.x + bottom_right.x) / 2.;
-    let mid_y = (top_left.y + bottom_right.y) / 2.;
-
-    [
-        (top_left.clone(), Point::new(mid_x, mid_y)),
-        (
-            Point::new(mid_x, top_left.y),
-            Point::new(bottom_right.x, mid_y),
-        ),
-        (
-            Point::new(top_left.x, mid_y),
-            Point::new(mid_x, bottom_right.y),
-        ),
-        (Point::new(mid_x, mid_y), bottom_right.clone()),
-    ]
-}
-
-fn render_line(cell: &mut Cell, line: &(Point, Point)) {
-    let coords = &cell.coords;
-    if !line_intersects_coords(coords, line) {
-        return;
-    }
-    let quadrants = get_quadrants(coords);
-    cell.quads_filled[0] = cell.quads_filled[0] || line_intersects_coords(&quadrants[0], line);
-    cell.quads_filled[1] = cell.quads_filled[1] || line_intersects_coords(&quadrants[1], line);
-    cell.quads_filled[2] = cell.quads_filled[2] || line_intersects_coords(&quadrants[2], line);
-    cell.quads_filled[3] = cell.quads_filled[3] || line_intersects_coords(&quadrants[3], line);
-}
-
-fn render_circle(cell: &mut Cell, circle: &(Point, f64)) {
-    let coords = &cell.coords;
-    if !circle_intersects_coords(coords, circle) {
-        return;
-    }
-    let quadrants = get_quadrants(coords);
-    cell.quads_filled[0] = cell.quads_filled[0] || circle_intersects_coords(&quadrants[0], circle);
-    cell.quads_filled[1] = cell.quads_filled[1] || circle_intersects_coords(&quadrants[1], circle);
-    cell.quads_filled[2] = cell.quads_filled[2] || circle_intersects_coords(&quadrants[2], circle);
-    cell.quads_filled[3] = cell.quads_filled[3] || circle_intersects_coords(&quadrants[3], circle);
-}
-
-fn print_cell(cell: &Cell) -> char {
-    let q = cell.quads_filled;
-
-    // 1: ,.
-    //    '`
-    // 2: "_
-    //    []
-    //    \/
-    // 3: P¶
-    //    bd
-    // 4:  #
-
-    match q[0] {
-        true => match q[1] {
-            true => match q[2] {
-                true => match q[3] {
-                    true => '#',  // 1111
-                    false => 'P', // 1110
-                },
-                false => match q[3] {
-                    true => '¶', // 1101
-                    false => '"', // 1100
-                },
-            },
-            false => match q[2] {
-                true => match q[3] {
-                    true => 'b',  // 1011
-                    false => '[', // 1010
-                },
-                false => match q[3] {
-                    true => '\\', // 1001
-                    false => '`', // 1000
-                },
-            },
-        },
-        false => match q[1] {
-            true => match q[2] {
-                true => match q[3] {
-                    true => 'd',  // 0111
-                    false => '/', // 0110
-                },
-                false => match q[3] {
-                    true => ']',   // 0101
-                    false => '\'', // 0100
-                },
-            },
-            false => match q[2] {
-                true => match q[3] {
-                    true => '_',  // 0011
-                    false => ',', // 0010
-                },
-                false => match q[3] {
-                    true => '.',  // 0001
-                    false => ' ', // 0000
-                },
-            },
-        },
-    }
-}
-
-fn print(grid: &Grid) {
-    grid.grid
-        .iter()
-        .for_each(|row| println!("{}", row.iter().map(print_cell).collect::<String>()))
 }
 
 fn sleep_less(subtract_amount: u64, millis: u64) {
@@ -287,7 +326,7 @@ where
 
         draw_fn(&mut grid, frame);
         print!("{}[2J", 27 as char);
-        print(&grid);
+        grid.print();
         grid.clear();
 
         let spent = now.elapsed().as_millis();
