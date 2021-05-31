@@ -321,16 +321,18 @@ where
         width: 100.,
         height: 100.,
     });
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
     for frame in 0.. {
         let now = std::time::Instant::now();
 
         draw_fn(&mut grid, frame);
-        print!("{}[2J", 27 as char);
+        print!("{}[1;1H", 27 as char);
         grid.print();
         grid.clear();
 
         let spent = now.elapsed().as_millis();
-        println!("time per frame: {}ms", spent);
+        println!("time per frame: {}ms                       ", spent);
+        print!("                         ");
         sleep_less(spent as u64, 60);
     }
 }
