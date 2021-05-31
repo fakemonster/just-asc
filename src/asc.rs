@@ -244,12 +244,15 @@ pub struct Grid {
     config: GridConfig,
 }
 
+// put a _tiny_ bit of padding on the edges so lines at the edges register
+const BUMPER: f64 = 0.00001;
+
 impl Grid {
     fn new(config: GridConfig) -> Grid {
         let cell_width = 72;
         let cell_height = 45;
-        let x_unit = config.width / cell_width as f64;
-        let y_unit = config.height / cell_height as f64;
+        let x_unit = (config.width + BUMPER) / cell_width as f64;
+        let y_unit = (config.height + BUMPER) / cell_height as f64;
 
         Grid {
             config,
@@ -257,8 +260,8 @@ impl Grid {
                 .map(|j| {
                     (0..cell_width)
                         .map(|i| {
-                            let x = i as f64 * x_unit;
-                            let y = j as f64 * y_unit;
+                            let x = i as f64 * x_unit - BUMPER / 2.;
+                            let y = j as f64 * y_unit - BUMPER / 2.;
                             Cell::new(Point::new(x, y), Point::new(x + x_unit, y + y_unit))
                         })
                         .collect()
@@ -333,6 +336,6 @@ where
         let spent = now.elapsed().as_millis();
         println!("time per frame: {}ms                       ", spent);
         print!("                         ");
-        sleep_less(spent as u64, 60);
+        sleep_less(spent as u64, 50);
     }
 }
