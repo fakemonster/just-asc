@@ -29,6 +29,7 @@ struct Line {
     end: Point,
     dx: f64,
     dy: f64,
+    length: f64,
     length_squared: f64,
 }
 
@@ -42,6 +43,7 @@ impl Line {
             end,
             dx,
             dy,
+            length: length_squared.sqrt(),
             length_squared,
         }
     }
@@ -67,6 +69,14 @@ impl Line {
     }
 
     fn intersects_ellipse(&self, ellipse: &Ellipse) -> bool {
+        let ex = self.start.x - ellipse.center.x;
+        let ey = self.start.y - ellipse.center.y;
+        let e_dist = (ex.powf(2.) + ey.powf(2.)).sqrt();
+
+        if e_dist > self.length + ellipse.max_axis {
+            return false;
+        }
+
         let slf = self.rotate(&ellipse.center, ellipse.keel);
         let ax = slf.start.x - ellipse.center.x;
         let ay = slf.start.y - ellipse.center.y;
@@ -174,6 +184,7 @@ impl Circle {
 #[derive(Debug)]
 struct Ellipse {
     center: Point,
+    max_axis: f64,
     a_squared: f64,
     b_squared: f64,
     keel: f64,
@@ -183,6 +194,7 @@ impl Ellipse {
     fn new(x: f64, y: f64, a: f64, b: f64, keel: f64) -> Self {
         Ellipse {
             center: Point::new(x, y),
+            max_axis: a.max(b),
             a_squared: a.powf(2.),
             b_squared: b.powf(2.),
             keel,
