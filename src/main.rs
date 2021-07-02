@@ -1,4 +1,5 @@
 mod asc;
+use std::f64::consts::PI;
 
 fn borders(grid: &mut asc::Grid) {
     grid.line(0., 0., 100., 0.);
@@ -12,7 +13,7 @@ fn offset_x_line(grid: &mut asc::Grid, offset: f64, x1: f64, y1: f64, x2: f64, y
 }
 
 fn sliding_angles(grid: &mut asc::Grid, frame: usize) {
-    let angle = (2. * 3.14159 / 50.) * frame as f64;
+    let angle = (2. * PI / 50.) * frame as f64;
     let offset = angle.cos() * 4.;
 
     offset_x_line(grid, offset, 40., 3., 60., 3.);
@@ -35,7 +36,7 @@ fn sliding_angles(grid: &mut asc::Grid, frame: usize) {
 }
 
 fn spinning_lines(grid: &mut asc::Grid, frame: usize) {
-    let angle = (2. * 3.14159 / 60.) * frame as f64;
+    let angle = (2. * PI / 60.) * frame as f64;
     let x = angle.cos();
     let y = angle.sin();
 
@@ -60,7 +61,7 @@ fn spinning_lines(grid: &mut asc::Grid, frame: usize) {
 }
 
 fn circle_stuff(grid: &mut asc::Grid, frame: usize) {
-    let slow = (2. * 3.14159 / 120.) * frame as f64;
+    let slow = (2. * PI / 120.) * frame as f64;
     let x = slow.cos();
     let y = slow.sin();
 
@@ -70,12 +71,17 @@ fn circle_stuff(grid: &mut asc::Grid, frame: usize) {
 }
 
 fn ellipses(grid: &mut asc::Grid, frame: usize) {
-    let slow = (2. * 3.14159 / 80.) * frame as f64;
+    let slow = (2. * PI / 80.) * frame as f64;
     let x = slow.cos();
 
     grid.ellipse(20., 70., 10. - (8. * x), 10. + 8. * x, 0.);
-    grid.ellipse(20., 70., 10. - (8. * x), 10. + 8. * x, 3.14159 / 4.);
+    grid.ellipse(20., 70., 10. - (8. * x), 10. + 8. * x, PI / 4.);
     grid.ellipse(20., 70., 4., 6., slow);
+
+    grid.ellipse(80., 30., 12., 6., slow);
+    grid.ellipse(80., 30., 12., 6., slow - PI / 4.);
+    grid.ellipse(80., 30., 12., 6., slow - PI / 2.);
+    grid.ellipse(80., 30., 12., 6., slow - (3. / 4.) * PI);
 }
 
 fn main() {
