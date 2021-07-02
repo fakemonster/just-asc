@@ -47,19 +47,40 @@ impl Line {
         0. < lambda && lambda < 1. && 0. < gamma && gamma < 1.
     }
 
+    fn intersects_ellipse(&self, ellipse: &Ellipse) -> bool {
+        let ax = self.start.x - ellipse.center.x;
+        let ay = self.start.y - ellipse.center.y;
+
+        let a = (self.dx.powf(2.) / ellipse.a_squared) + (self.dy.powf(2.) / ellipse.b_squared);
+        let b = 2. * ((ax * self.dx / ellipse.a_squared) + (ay * self.dy / ellipse.b_squared));
+        let c = ax.powf(2.) / ellipse.a_squared + ay.powf(2.) / ellipse.b_squared - 1.;
+        let discriminant = b.powf(2.) - 4. * a * c;
+        if discriminant < 0. {
+            return false;
+        }
+
+        let sqrt_discriminant = discriminant.sqrt();
+        let t1 = (-b + sqrt_discriminant) / (2. * a);
+        let t2 = (-b - sqrt_discriminant) / (2. * a);
+
+        (0. < t1 && t1 < 1.) || (0. < t2 && t2 < 1.)
+    }
+
     fn intersects_circle(&self, circle: &Circle) -> bool {
         let ax = self.start.x - circle.center.x;
         let ay = self.start.y - circle.center.y;
+
         let a = self.hypotenuse_squared;
         let b = 2. * (ax * self.dx + ay * self.dy);
         let c = ax.powf(2.) + ay.powf(2.) - circle.r_squared;
-        let disc = b.powf(2.) - 4. * a * c;
-        if disc <= 0. {
+        let discriminant = b.powf(2.) - 4. * a * c;
+        if discriminant < 0. {
             return false;
         }
-        let sqrt_disc = disc.sqrt();
-        let t1 = (-b + sqrt_disc) / (2. * a);
-        let t2 = (-b - sqrt_disc) / (2. * a);
+
+        let sqrt_discriminant = discriminant.sqrt();
+        let t1 = (-b + sqrt_discriminant) / (2. * a);
+        let t2 = (-b - sqrt_discriminant) / (2. * a);
 
         (0. < t1 && t1 < 1.) || (0. < t2 && t2 < 1.)
     }
@@ -106,22 +127,43 @@ impl Rectangle {
             || self.bottom.intersects_circle(circle)
             || self.left.intersects_circle(circle)
     }
+
+    fn overlaps_ellipse(&self, ellipse: &Ellipse) -> bool {
+        self.top.intersects_ellipse(ellipse)
+            || self.right.intersects_ellipse(ellipse)
+            || self.bottom.intersects_ellipse(ellipse)
+            || self.left.intersects_ellipse(ellipse)
+    }
 }
 
 #[derive(Debug)]
 struct Circle {
     center: Point,
-    r: f64,
     r_squared: f64,
 }
 
 impl Circle {
     fn new(x: f64, y: f64, r: f64) -> Circle {
-        let r_squared = r.powf(2.);
         Circle {
             center: Point::new(x, y),
-            r,
-            r_squared,
+            r_squared: r.powf(2.),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Ellipse {
+    center: Point,
+    a_squared: f64,
+    b_squared: f64,
+}
+
+impl Ellipse {
+    fn new(x: f64, y: f64, a: f64, b: f64) -> Self {
+        Ellipse {
+            center: Point::new(x, y),
+            a_squared: a.powf(2.),
+            b_squared: b.powf(2.),
         }
     }
 }
@@ -169,6 +211,16 @@ impl Cell {
         self.quads_filled[1] = self.quads_filled[1] || self.quadrants[1].overlaps_circle(circle);
         self.quads_filled[2] = self.quads_filled[2] || self.quadrants[2].overlaps_circle(circle);
         self.quads_filled[3] = self.quads_filled[3] || self.quadrants[3].overlaps_circle(circle);
+    }
+
+    fn render_ellipse(&mut self, ellipse: &Ellipse) {
+        if !self.coords.overlaps_ellipse(ellipse) {
+            return;
+        }
+        self.quads_filled[0] = self.quads_filled[0] || self.quadrants[0].overlaps_ellipse(ellipse);
+        self.quads_filled[1] = self.quads_filled[1] || self.quadrants[1].overlaps_ellipse(ellipse);
+        self.quads_filled[2] = self.quads_filled[2] || self.quadrants[2].overlaps_ellipse(ellipse);
+        self.quads_filled[3] = self.quads_filled[3] || self.quadrants[3].overlaps_ellipse(ellipse);
     }
 
     fn print(&self) -> char {
@@ -299,6 +351,13 @@ impl Grid {
         let circle = Circle::new(x, y, r);
         self.each_cell_mut(|cell| {
             cell.render_circle(&circle);
+        });
+    }
+
+    pub fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64) {
+        let ellipse = Ellipse::new(x, y, a, b);
+        self.each_cell_mut(|cell| {
+            cell.render_ellipse(&ellipse);
         });
     }
 

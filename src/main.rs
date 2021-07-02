@@ -69,11 +69,19 @@ fn circle_stuff(grid: &mut asc::Grid, frame: usize) {
     grid.circle(50. + (x * 5.), 85., 10. + (y * 10.));
 }
 
+fn ellipses(grid: &mut asc::Grid, frame: usize) {
+    let slow = (2. * 3.14159 / 120.) * frame as f64;
+    let x = slow.cos();
+
+    grid.ellipse(20., 80., 10. - (8. * x), 10. + 8. * x);
+}
+
 fn main() {
     asc::draw(|grid: &mut asc::Grid, frame: usize| {
         borders(grid);
         sliding_angles(grid, frame);
         spinning_lines(grid, frame);
         circle_stuff(grid, frame);
+        ellipses(grid, frame);
     });
 }
