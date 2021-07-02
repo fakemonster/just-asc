@@ -70,10 +70,12 @@ fn circle_stuff(grid: &mut asc::Grid, frame: usize) {
 }
 
 fn ellipses(grid: &mut asc::Grid, frame: usize) {
-    let slow = (2. * 3.14159 / 120.) * frame as f64;
+    let slow = (2. * 3.14159 / 80.) * frame as f64;
     let x = slow.cos();
 
-    grid.ellipse(20., 80., 10. - (8. * x), 10. + 8. * x);
+    grid.ellipse(20., 70., 10. - (8. * x), 10. + 8. * x, 0.);
+    grid.ellipse(20., 70., 10. - (8. * x), 10. + 8. * x, 3.14159 / 4.);
+    grid.ellipse(20., 70., 4., 6., slow);
 }
 
 fn main() {

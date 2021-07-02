@@ -8,6 +8,18 @@ impl Point {
     fn new(x: f64, y: f64) -> Self {
         Point { x, y }
     }
+
+    fn rotate(&self, axis: &Point, keel: f64) -> Point {
+        let s = keel.sin();
+        let c = keel.cos();
+        let tx = self.x - axis.x;
+        let ty = self.y - axis.y;
+
+        Point {
+            x: tx * c - ty * s + axis.x,
+            y: tx * s + ty * c + axis.y,
+        }
+    }
 }
 
 // a pair of points defining a line segment, with some precomputed values
@@ -17,21 +29,28 @@ struct Line {
     end: Point,
     dx: f64,
     dy: f64,
-    hypotenuse_squared: f64,
+    length_squared: f64,
 }
 
 impl Line {
-    fn new(start: Point, end: Point) -> Line {
+    fn new(start: Point, end: Point) -> Self {
         let dx = end.x - start.x;
         let dy = end.y - start.y;
-        let hypotenuse_squared = dx.powf(2.) + dy.powf(2.);
+        let length_squared = dx.powf(2.) + dy.powf(2.);
         Line {
             start,
             end,
             dx,
             dy,
-            hypotenuse_squared,
+            length_squared,
         }
+    }
+
+    fn rotate(&self, axis: &Point, keel: f64) -> Self {
+        let start = self.start.rotate(axis, keel);
+        let end = self.end.rotate(axis, keel);
+
+        Line::new(start, end)
     }
 
     fn intersects_line(&self, other: &Line) -> bool {
@@ -48,11 +67,12 @@ impl Line {
     }
 
     fn intersects_ellipse(&self, ellipse: &Ellipse) -> bool {
-        let ax = self.start.x - ellipse.center.x;
-        let ay = self.start.y - ellipse.center.y;
+        let slf = self.rotate(&ellipse.center, ellipse.keel);
+        let ax = slf.start.x - ellipse.center.x;
+        let ay = slf.start.y - ellipse.center.y;
 
-        let a = (self.dx.powf(2.) / ellipse.a_squared) + (self.dy.powf(2.) / ellipse.b_squared);
-        let b = 2. * ((ax * self.dx / ellipse.a_squared) + (ay * self.dy / ellipse.b_squared));
+        let a = (slf.dx.powf(2.) / ellipse.a_squared) + (slf.dy.powf(2.) / ellipse.b_squared);
+        let b = 2. * ((ax * slf.dx / ellipse.a_squared) + (ay * slf.dy / ellipse.b_squared));
         let c = ax.powf(2.) / ellipse.a_squared + ay.powf(2.) / ellipse.b_squared - 1.;
         let discriminant = b.powf(2.) - 4. * a * c;
         if discriminant < 0. {
@@ -70,7 +90,7 @@ impl Line {
         let ax = self.start.x - circle.center.x;
         let ay = self.start.y - circle.center.y;
 
-        let a = self.hypotenuse_squared;
+        let a = self.length_squared;
         let b = 2. * (ax * self.dx + ay * self.dy);
         let c = ax.powf(2.) + ay.powf(2.) - circle.r_squared;
         let discriminant = b.powf(2.) - 4. * a * c;
@@ -156,14 +176,16 @@ struct Ellipse {
     center: Point,
     a_squared: f64,
     b_squared: f64,
+    keel: f64,
 }
 
 impl Ellipse {
-    fn new(x: f64, y: f64, a: f64, b: f64) -> Self {
+    fn new(x: f64, y: f64, a: f64, b: f64, keel: f64) -> Self {
         Ellipse {
             center: Point::new(x, y),
             a_squared: a.powf(2.),
             b_squared: b.powf(2.),
+            keel,
         }
     }
 }
@@ -354,8 +376,8 @@ impl Grid {
         });
     }
 
-    pub fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64) {
-        let ellipse = Ellipse::new(x, y, a, b);
+    pub fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64) {
+        let ellipse = Ellipse::new(x, y, a, b, keel);
         self.each_cell_mut(|cell| {
             cell.render_ellipse(&ellipse);
         });
