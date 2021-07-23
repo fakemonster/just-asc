@@ -8,80 +8,63 @@ fn borders(grid: &mut just_asc::Grid) {
     grid.line(0., 0., 0., 100.);
 }
 
-fn offset_x_line(grid: &mut just_asc::Grid, offset: f64, x1: f64, y1: f64, x2: f64, y2: f64) {
-    grid.line(x1 + offset, y1, x2 + offset, y2);
+fn spinning_triangle(grid: &mut just_asc::Grid, cycle: f64, x: f64, y: f64, height: f64) {
+    let side_length = 2. * height / (3_f64.sqrt());
+
+    let x1 = x + (cycle.cos() * side_length);
+    let y1 = y + (cycle.sin() * side_length);
+    let x2 = x + ((cycle - 2. * PI / 3.).cos() * side_length);
+    let y2 = y + ((cycle - 2. * PI / 3.).sin() * side_length);
+    let x3 = x + ((cycle - 4. * PI / 3.).cos() * side_length);
+    let y3 = y + ((cycle - 4. * PI / 3.).sin() * side_length);
+
+    grid.line(x1, y1, x2, y2);
+    grid.line(x2, y2, x3, y3);
+    grid.line(x3, y3, x1, y1);
 }
 
-fn sliding_angles(grid: &mut just_asc::Grid, frame: usize) {
-    let angle = (2. * PI / 50.) * frame as f64;
-    let offset = angle.cos() * 4.;
+fn triangle_stuff(grid: &mut just_asc::Grid, frame: usize) {
+    let big_cycle = -(2. * PI / 320.) * (frame + 240) as f64;
+    let medium_cycle = -(2. * PI / 240.) * (frame + 180) as f64;
+    let small_cycle = -(2. * PI / 160.) * (frame + 120) as f64;
 
-    offset_x_line(grid, offset, 40., 3., 60., 3.);
-
-    offset_x_line(grid, offset, 15., 5., 1.5, 8.);
-    offset_x_line(grid, offset, 20., 5., 8., 9.);
-    offset_x_line(grid, offset, 25., 5., 12.5, 10.);
-    offset_x_line(grid, offset, 30., 5., 18., 11.);
-    offset_x_line(grid, offset, 35., 5., 24.5, 12.);
-    offset_x_line(grid, offset, 40., 5., 32., 13.);
-    offset_x_line(grid, offset, 45., 5., 41., 14.);
-    offset_x_line(grid, offset, 50., 5., 50., 15.);
-    offset_x_line(grid, offset, 55., 5., 59., 14.);
-    offset_x_line(grid, offset, 60., 5., 68., 13.);
-    offset_x_line(grid, offset, 65., 5., 75.5, 12.);
-    offset_x_line(grid, offset, 70., 5., 82., 11.);
-    offset_x_line(grid, offset, 75., 5., 87.5, 10.);
-    offset_x_line(grid, offset, 80., 5., 92., 9.);
-    offset_x_line(grid, offset, 85., 5., 98.5, 8.);
-}
-
-fn spinning_lines(grid: &mut just_asc::Grid, frame: usize) {
-    let angle = (2. * PI / 60.) * frame as f64;
-    let x = angle.cos();
-    let y = angle.sin();
-
-    grid.line(
-        50. - (x * 5.),
-        50. - (y * 5.),
-        50. + (x * 30.),
-        50. + (y * 30.),
-    );
-    grid.line(
-        50. - (y * 3.),
-        50. - (x * 3.),
-        50. + (y * 10.),
-        50. + (x * 10.),
-    );
-    grid.line(
-        70. - (y * 5.),
-        30. - (x * 5.),
-        20. + (y * 10.),
-        30. + (x * 10.),
-    );
+    spinning_triangle(grid, big_cycle, 50., 50., 25.);
+    spinning_triangle(grid, medium_cycle, 50., 50., 12.5);
+    spinning_triangle(grid, small_cycle, 50., 50., 6.25);
 }
 
 fn circle_stuff(grid: &mut just_asc::Grid, frame: usize) {
-    let slow = (2. * PI / 120.) * frame as f64;
-    let x = slow.cos();
-    let y = slow.sin();
+    for i in 0..12 {
+        let cycle = (2. * PI / 240.) * (frame + (20 * i)) as f64;
+        let x = cycle.cos();
+        let y = cycle.sin();
 
-    grid.circle(50. + (x * 10.), 50. + (y * 10.), 10.);
-    grid.circle(50. + (x * 5.), 85., 10. + (x * 10.));
-    grid.circle(50. + (x * 5.), 85., 10. + (y * 10.));
+        grid.circle(50. + (x * 42.), 50. + (y * 42.), 8.);
+    }
 }
 
 fn ellipses(grid: &mut just_asc::Grid, frame: usize) {
-    let slow = (2. * PI / 80.) * frame as f64;
-    let x = slow.cos();
+    let slow = (2. * PI / 80.) * (frame + 75) as f64;
 
-    grid.ellipse(20., 70., 10. - (8. * x), 10. + 8. * x, 0.);
-    grid.ellipse(20., 70., 10. - (8. * x), 10. + 8. * x, PI / 4.);
-    grid.ellipse(20., 70., 4., 6., slow);
+    grid.ellipse(3., 3., 18., 6., slow);
+    grid.ellipse(3., 3., 18., 6., slow - PI / 4.);
+    grid.ellipse(3., 3., 18., 6., slow - PI / 2.);
+    grid.ellipse(3., 3., 18., 6., slow - (3. / 4.) * PI);
 
-    grid.ellipse(80., 30., 12., 6., slow);
-    grid.ellipse(80., 30., 12., 6., slow - PI / 4.);
-    grid.ellipse(80., 30., 12., 6., slow - PI / 2.);
-    grid.ellipse(80., 30., 12., 6., slow - (3. / 4.) * PI);
+    grid.ellipse(3., 97., 18., 6., slow);
+    grid.ellipse(3., 97., 18., 6., slow - PI / 4.);
+    grid.ellipse(3., 97., 18., 6., slow - PI / 2.);
+    grid.ellipse(3., 97., 18., 6., slow - (3. / 4.) * PI);
+
+    grid.ellipse(97., 3., 18., 6., slow);
+    grid.ellipse(97., 3., 18., 6., slow - PI / 4.);
+    grid.ellipse(97., 3., 18., 6., slow - PI / 2.);
+    grid.ellipse(97., 3., 18., 6., slow - (3. / 4.) * PI);
+
+    grid.ellipse(97., 97., 18., 6., slow);
+    grid.ellipse(97., 97., 18., 6., slow - PI / 4.);
+    grid.ellipse(97., 97., 18., 6., slow - PI / 2.);
+    grid.ellipse(97., 97., 18., 6., slow - (3. / 4.) * PI);
 }
 
 fn main() {
@@ -93,8 +76,7 @@ fn main() {
 
     just_asc::draw(config, |grid: &mut just_asc::Grid, frame: usize| {
         borders(grid);
-        sliding_angles(grid, frame);
-        spinning_lines(grid, frame);
+        triangle_stuff(grid, frame);
         circle_stuff(grid, frame);
         ellipses(grid, frame);
     });
