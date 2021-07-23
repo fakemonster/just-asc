@@ -1,18 +1,18 @@
-mod asc;
+extern crate just_asc;
 use std::f64::consts::PI;
 
-fn borders(grid: &mut asc::Grid) {
+fn borders(grid: &mut just_asc::Grid) {
     grid.line(0., 0., 100., 0.);
     grid.line(100., 0., 100., 100.);
     grid.line(100., 100., 0., 100.);
     grid.line(0., 0., 0., 100.);
 }
 
-fn offset_x_line(grid: &mut asc::Grid, offset: f64, x1: f64, y1: f64, x2: f64, y2: f64) {
+fn offset_x_line(grid: &mut just_asc::Grid, offset: f64, x1: f64, y1: f64, x2: f64, y2: f64) {
     grid.line(x1 + offset, y1, x2 + offset, y2);
 }
 
-fn sliding_angles(grid: &mut asc::Grid, frame: usize) {
+fn sliding_angles(grid: &mut just_asc::Grid, frame: usize) {
     let angle = (2. * PI / 50.) * frame as f64;
     let offset = angle.cos() * 4.;
 
@@ -35,7 +35,7 @@ fn sliding_angles(grid: &mut asc::Grid, frame: usize) {
     offset_x_line(grid, offset, 85., 5., 98.5, 8.);
 }
 
-fn spinning_lines(grid: &mut asc::Grid, frame: usize) {
+fn spinning_lines(grid: &mut just_asc::Grid, frame: usize) {
     let angle = (2. * PI / 60.) * frame as f64;
     let x = angle.cos();
     let y = angle.sin();
@@ -60,7 +60,7 @@ fn spinning_lines(grid: &mut asc::Grid, frame: usize) {
     );
 }
 
-fn circle_stuff(grid: &mut asc::Grid, frame: usize) {
+fn circle_stuff(grid: &mut just_asc::Grid, frame: usize) {
     let slow = (2. * PI / 120.) * frame as f64;
     let x = slow.cos();
     let y = slow.sin();
@@ -70,7 +70,7 @@ fn circle_stuff(grid: &mut asc::Grid, frame: usize) {
     grid.circle(50. + (x * 5.), 85., 10. + (y * 10.));
 }
 
-fn ellipses(grid: &mut asc::Grid, frame: usize) {
+fn ellipses(grid: &mut just_asc::Grid, frame: usize) {
     let slow = (2. * PI / 80.) * frame as f64;
     let x = slow.cos();
 
@@ -85,13 +85,13 @@ fn ellipses(grid: &mut asc::Grid, frame: usize) {
 }
 
 fn main() {
-    let config = asc::GridConfig {
+    let config = just_asc::GridConfig {
         cell_width: 72,
         cell_height: 36,
-        tileset: asc::BRAILLE,
+        tileset: just_asc::BRAILLE,
     };
 
-    asc::draw(config, |grid: &mut asc::Grid, frame: usize| {
+    just_asc::draw(config, |grid: &mut just_asc::Grid, frame: usize| {
         borders(grid);
         sliding_angles(grid, frame);
         spinning_lines(grid, frame);
