@@ -88,7 +88,7 @@ fn main() {
     let config = asc::GridConfig {
         cell_width: 72,
         cell_height: 36,
-        tileset: asc::PURE_ASCII,
+        tileset: asc::BRAILLE,
     };
 
     asc::draw(config, |grid: &mut asc::Grid, frame: usize| {
