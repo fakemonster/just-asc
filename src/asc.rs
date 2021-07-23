@@ -257,64 +257,24 @@ impl Cell {
         self.quads_filled[3] = self.quads_filled[3] || self.quadrants[3].overlaps_ellipse(ellipse);
     }
 
-    fn print(&self) -> char {
+    fn print(&self, tileset: &[char; 16]) -> char {
         let q = self.quads_filled;
 
-        // 1: ,.
-        //    '`
-        // 2: "_
-        //    []
-        //    \/
-        // 3: P¶
-        //    bd
-        // 4:  #
-
-        match q[0] {
-            true => match q[1] {
-                true => match q[2] {
-                    true => match q[3] {
-                        true => '#',  // 1111
-                        false => 'P', // 1110
-                    },
-                    false => match q[3] {
-                        true => '¶', // 1101
-                        false => '"', // 1100
-                    },
-                },
-                false => match q[2] {
-                    true => match q[3] {
-                        true => 'b',  // 1011
-                        false => '[', // 1010
-                    },
-                    false => match q[3] {
-                        true => '\\', // 1001
-                        false => '`', // 1000
-                    },
-                },
-            },
-            false => match q[1] {
-                true => match q[2] {
-                    true => match q[3] {
-                        true => 'd',  // 0111
-                        false => '/', // 0110
-                    },
-                    false => match q[3] {
-                        true => ']',   // 0101
-                        false => '\'', // 0100
-                    },
-                },
-                false => match q[2] {
-                    true => match q[3] {
-                        true => '_',  // 0011
-                        false => ',', // 0010
-                    },
-                    false => match q[3] {
-                        true => '.',  // 0001
-                        false => ' ', // 0000
-                    },
-                },
-            },
+        let mut i = 0;
+        if q[3] {
+            i += 1;
         }
+        if q[2] {
+            i += 2;
+        }
+        if q[1] {
+            i += 4;
+        }
+        if q[0] {
+            i += 8;
+        }
+
+        tileset[i]
     }
 }
 
@@ -322,12 +282,39 @@ impl Cell {
 pub struct GridConfig {
     pub cell_width: usize,
     pub cell_height: usize,
+    pub tileset: [char; 16],
 }
+
+// if the quadrants were listed top-left, top-right, bottom-left, bottom-right,
+// with a 1 for 'filled' and a `0` for 'unfilled', then each configuration of a
+// cell would be some binary number < 16, e.g.
+//
+// - 1010 (10): top-left and bottom-left are filled in
+// - 1101 (13): top-left, top-right and bottom-right are filled in
+// - 0100 (4): only top-right is filled in
+pub const PURE_ASCII: [char; 16] = [
+    ' ',  // 0000
+    '.',  // 0001
+    ',',  // 0010
+    '_',  // 0011
+    '\'', // 0100
+    ']',  // 0101
+    '/',  // 0110
+    'd',  // 0111
+    '`',  // 1000
+    '\\', // 1001
+    '[',  // 1010
+    'b',  // 1011
+    '"',  // 1100
+    '¶', //  1101
+    'P',  // 1110
+    '#',  // 1111
+];
 
 #[derive(Debug)]
 pub struct Grid {
     grid: Vec<Vec<Cell>>,
-    config: GridConfig,
+    tileset: [char; 16],
 }
 
 // put a _tiny_ bit of padding on the edges so lines at the edges register
@@ -341,7 +328,7 @@ impl Grid {
         let y_unit = (100. + BUMPER) / cell_height as f64;
 
         Grid {
-            config,
+            tileset: config.tileset,
             grid: (0..cell_height)
                 .map(|j| {
                     (0..cell_width)
@@ -396,9 +383,14 @@ impl Grid {
     }
 
     fn print(&self) {
-        self.grid
-            .iter()
-            .for_each(|row| println!("{}", row.iter().map(Cell::print).collect::<String>()))
+        self.grid.iter().for_each(|row| {
+            println!(
+                "{}",
+                row.iter()
+                    .map(|cell| cell.print(&self.tileset))
+                    .collect::<String>()
+            )
+        })
     }
 }
 
