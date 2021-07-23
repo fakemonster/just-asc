@@ -319,9 +319,9 @@ impl Cell {
 }
 
 #[derive(Debug)]
-struct GridConfig {
-    width: f64,
-    height: f64,
+pub struct GridConfig {
+    pub cell_width: usize,
+    pub cell_height: usize,
 }
 
 #[derive(Debug)]
@@ -335,10 +335,10 @@ const BUMPER: f64 = 0.00001;
 
 impl Grid {
     fn new(config: GridConfig) -> Grid {
-        let cell_width = 72;
-        let cell_height = 45;
-        let x_unit = (config.width + BUMPER) / cell_width as f64;
-        let y_unit = (config.height + BUMPER) / cell_height as f64;
+        let cell_width = config.cell_width;
+        let cell_height = config.cell_height;
+        let x_unit = (100. + BUMPER) / cell_width as f64;
+        let y_unit = (100. + BUMPER) / cell_height as f64;
 
         Grid {
             config,
@@ -409,14 +409,11 @@ fn sleep_less(subtract_amount: u64, millis: u64) {
     std::thread::sleep(std::time::Duration::from_millis(millis - subtract_amount));
 }
 
-pub fn draw<F>(draw_fn: F)
+pub fn draw<F>(config: GridConfig, draw_fn: F)
 where
     F: Fn(&mut Grid, usize) -> (),
 {
-    let mut grid = Grid::new(GridConfig {
-        width: 100.,
-        height: 100.,
-    });
+    let mut grid = Grid::new(config);
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
     for frame in 0.. {
         let now = std::time::Instant::now();

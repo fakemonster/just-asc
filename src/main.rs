@@ -85,7 +85,12 @@ fn ellipses(grid: &mut asc::Grid, frame: usize) {
 }
 
 fn main() {
-    asc::draw(|grid: &mut asc::Grid, frame: usize| {
+    let config = asc::GridConfig {
+        cell_width: 72,
+        cell_height: 36,
+    };
+
+    asc::draw(config, |grid: &mut asc::Grid, frame: usize| {
         borders(grid);
         sliding_angles(grid, frame);
         spinning_lines(grid, frame);
