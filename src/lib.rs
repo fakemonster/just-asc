@@ -331,8 +331,17 @@ pub const BRAILLE: [char; 16] = [
     '\u{28ff}', // 1111
 ];
 
+pub trait Draw {
+    fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64);
+    fn circle(&mut self, x: f64, y: f64, r: f64);
+    fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64);
+    fn rotate(&mut self, radians: f64) -> Transform;
+    fn translate(&mut self, x: f64, y: f64) -> Transform;
+}
+
 #[derive(Debug)]
-struct Transform {
+pub struct Transform<'a> {
+    grid: &'a mut Grid,
     angle: f64,
     angle_sin: f64,
     angle_cos: f64,
@@ -340,26 +349,27 @@ struct Transform {
     y: f64,
 }
 
-impl Transform {
-    fn new() -> Transform {
+impl<'a> Transform<'a> {
+    fn from_rotate(grid: &'a mut Grid, radians: f64) -> Transform<'a> {
         Transform {
-            angle: 0.,
-            angle_sin: 0.,
-            angle_cos: 1.,
+            grid,
+            angle: radians,
+            angle_sin: radians.sin(),
+            angle_cos: radians.cos(),
             x: 0.,
             y: 0.,
         }
     }
 
-    fn rotate(&mut self, radians: f64) {
-        self.angle -= radians;
-        self.angle_sin = self.angle.sin();
-        self.angle_cos = self.angle.cos();
-    }
-
-    fn translate(&mut self, x: f64, y: f64) {
-        self.x += x;
-        self.y += y;
+    fn from_translate(grid: &'a mut Grid, x: f64, y: f64) -> Transform<'a> {
+        Transform {
+            grid,
+            angle: 0.,
+            angle_sin: 0.,
+            angle_cos: 1.,
+            x,
+            y,
+        }
     }
 
     fn point(&self, x: f64, y: f64) -> Point {
@@ -370,16 +380,83 @@ impl Transform {
     }
 }
 
+impl<'a> Draw for Transform<'a> {
+    fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64) {
+        let p1 = self.point(x1, y1);
+        let p2 = self.point(x2, y2);
+        self.grid.line(p1.x, p1.y, p2.x, p2.y);
+    }
+    fn circle(&mut self, x: f64, y: f64, r: f64) {
+        let p = self.point(x, y);
+        self.grid.circle(p.x, p.y, r);
+    }
+    fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64) {
+        let p = self.point(x, y);
+        self.grid.ellipse(p.x, p.y, a, b, self.angle + keel);
+    }
+    fn rotate(&mut self, radians: f64) -> Transform {
+        let new_angle = self.angle + radians;
+        Transform {
+            grid: self.grid,
+            angle: new_angle,
+            angle_sin: new_angle.sin(),
+            angle_cos: new_angle.cos(),
+            x: self.x,
+            y: self.y,
+        }
+    }
+    fn translate(&mut self, x: f64, y: f64) -> Transform {
+        Transform {
+            grid: self.grid,
+            angle: self.angle,
+            angle_sin: self.angle_sin,
+            angle_cos: self.angle_cos,
+            x: self.x + x,
+            y: self.y + y,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Grid {
     grid: Vec<Vec<Cell>>,
     tileset: [char; 16],
     max_framerate: usize,
-    transform: Transform,
 }
 
 // put a _tiny_ bit of padding on the edges so lines at the edges register
 const BUMPER: f64 = 0.00001;
+
+impl Draw for Grid {
+    fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64) {
+        let line = Line::new(Point::new(x1, y1), Point::new(x2, y2));
+        self.each_cell_mut(|cell| {
+            cell.render_line(&line);
+        });
+    }
+
+    fn circle(&mut self, x: f64, y: f64, r: f64) {
+        let circle = Circle::new(Point::new(x, y), r);
+        self.each_cell_mut(|cell| {
+            cell.render_circle(&circle);
+        });
+    }
+
+    fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64) {
+        let ellipse = Ellipse::new(Point::new(x, y), a, b, keel);
+        self.each_cell_mut(|cell| {
+            cell.render_ellipse(&ellipse);
+        });
+    }
+
+    fn rotate(&mut self, radians: f64) -> Transform {
+        Transform::from_rotate(self, radians)
+    }
+
+    fn translate(&mut self, x: f64, y: f64) -> Transform {
+        Transform::from_translate(self, x, y)
+    }
+}
 
 impl Grid {
     fn new(config: GridConfig) -> Grid {
@@ -391,7 +468,6 @@ impl Grid {
         Grid {
             tileset: config.tileset,
             max_framerate: config.max_framerate.unwrap_or(20),
-            transform: Transform::new(),
             grid: (0..cell_height)
                 .map(|j| {
                     (0..cell_width)
@@ -422,44 +498,6 @@ impl Grid {
             cell.quads_filled[2] = false;
             cell.quads_filled[3] = false;
         });
-    }
-
-    pub fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64) {
-        let line = Line::new(self.transform.point(x1, y1), self.transform.point(x2, y2));
-        self.each_cell_mut(|cell| {
-            cell.render_line(&line);
-        });
-    }
-
-    pub fn circle(&mut self, x: f64, y: f64, r: f64) {
-        let circle = Circle::new(self.transform.point(x, y), r);
-        self.each_cell_mut(|cell| {
-            cell.render_circle(&circle);
-        });
-    }
-
-    pub fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64) {
-        let ellipse = Ellipse::new(
-            self.transform.point(x, y),
-            a,
-            b,
-            self.transform.angle + keel,
-        );
-        self.each_cell_mut(|cell| {
-            cell.render_ellipse(&ellipse);
-        });
-    }
-
-    pub fn rotate(&mut self, radians: f64) {
-        self.transform.rotate(radians);
-    }
-
-    pub fn translate(&mut self, x: f64, y: f64) {
-        self.transform.translate(x, y);
-    }
-
-    pub fn clear_transform(&mut self) {
-        self.transform = Transform::new();
     }
 
     fn print(&self) {

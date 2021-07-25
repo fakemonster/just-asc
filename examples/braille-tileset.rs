@@ -1,4 +1,5 @@
 extern crate just_asc;
+use crate::just_asc::Draw;
 use std::f64::consts::PI;
 
 fn borders(grid: &mut just_asc::Grid) {
@@ -10,8 +11,7 @@ fn borders(grid: &mut just_asc::Grid) {
 
 fn spinning_triangle(grid: &mut just_asc::Grid, cycle: f64, height: f64) {
     let side_length = 2. * height / (3_f64.sqrt());
-    grid.translate(50., 50.);
-    grid.rotate(cycle);
+    let mut temp = grid.translate(50., 50.);
 
     let x1 = 0.;
     let y1 = -2. * height / 3.;
@@ -20,10 +20,9 @@ fn spinning_triangle(grid: &mut just_asc::Grid, cycle: f64, height: f64) {
     let x3 = -side_length / 2.;
     let y3 = height / 3.;
 
-    grid.line(x1, y1, x2, y2);
-    grid.line(x2, y2, x3, y3);
-    grid.line(x3, y3, x1, y1);
-    grid.clear_transform();
+    temp.rotate(cycle).line(x1, y1, x2, y2);
+    temp.rotate(cycle).line(x2, y2, x3, y3);
+    temp.rotate(cycle).line(x3, y3, x1, y1);
 }
 
 fn triangle_stuff(grid: &mut just_asc::Grid, frame: usize) {
@@ -37,16 +36,16 @@ fn triangle_stuff(grid: &mut just_asc::Grid, frame: usize) {
 }
 
 fn circle_stuff(grid: &mut just_asc::Grid, frame: usize) {
-    grid.translate(50., 50.);
-    grid.rotate(frame as f64 * 2. * PI / 240.);
-    for _ in 0..12 {
-        grid.rotate(2. * PI / 12.);
-        grid.circle(0., -42., 8.);
+    let mut transform = grid.translate(50., 50.);
+    for i in 0..12 {
+        transform
+            .rotate(frame as f64 * 2. * PI / 240.)
+            .rotate(i as f64 * 2. * PI / 12.)
+            .circle(0., -42., 8.);
     }
-    grid.clear_transform();
 }
 
-fn spinner(grid: &mut just_asc::Grid, initial_angle: f64) {
+fn spinner(mut grid: just_asc::Transform, initial_angle: f64) {
     grid.ellipse(0., 0., 18., 6., initial_angle);
     grid.ellipse(0., 0., 18., 6., initial_angle - PI / 4.);
     grid.ellipse(0., 0., 18., 6., initial_angle - PI / 2.);
@@ -56,21 +55,10 @@ fn spinner(grid: &mut just_asc::Grid, initial_angle: f64) {
 fn ellipses(grid: &mut just_asc::Grid, frame: usize) {
     let slow = (2. * PI / 80.) * (frame + 75) as f64;
 
-    grid.translate(3., 3.);
-    spinner(grid, slow);
-    grid.clear_transform();
-
-    grid.translate(3., 97.);
-    spinner(grid, slow);
-    grid.clear_transform();
-
-    grid.translate(97., 3.);
-    spinner(grid, slow);
-    grid.clear_transform();
-
-    grid.translate(97., 97.);
-    spinner(grid, slow);
-    grid.clear_transform();
+    spinner(grid.translate(3., 3.), slow);
+    spinner(grid.translate(3., 97.), slow);
+    spinner(grid.translate(97., 3.), slow);
+    spinner(grid.translate(97., 97.), slow);
 }
 
 fn main() {
