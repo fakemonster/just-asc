@@ -283,6 +283,7 @@ pub struct GridConfig {
     pub cell_width: usize,
     pub cell_height: usize,
     pub tileset: [char; 16],
+    pub max_framerate: Option<usize>,
 }
 
 // if the quadrants were listed top-left, top-right, bottom-left, bottom-right,
@@ -334,6 +335,7 @@ pub const BRAILLE: [char; 16] = [
 pub struct Grid {
     grid: Vec<Vec<Cell>>,
     tileset: [char; 16],
+    max_framerate: usize,
 }
 
 // put a _tiny_ bit of padding on the edges so lines at the edges register
@@ -348,6 +350,7 @@ impl Grid {
 
         Grid {
             tileset: config.tileset,
+            max_framerate: config.max_framerate.unwrap_or(20),
             grid: (0..cell_height)
                 .map(|j| {
                     (0..cell_width)
@@ -413,11 +416,13 @@ impl Grid {
     }
 }
 
-fn sleep_less(subtract_amount: u64, millis: u64) {
+fn sleep_less(subtract_amount: usize, millis: usize) {
     if subtract_amount >= millis {
         return;
     }
-    std::thread::sleep(std::time::Duration::from_millis(millis - subtract_amount));
+    std::thread::sleep(std::time::Duration::from_millis(
+        (millis - subtract_amount) as u64,
+    ));
 }
 
 pub fn draw<F>(config: GridConfig, draw_fn: F)
@@ -437,6 +442,6 @@ where
         let spent = now.elapsed().as_millis();
         println!("time per frame: {}ms                       ", spent);
         print!("                         ");
-        sleep_less(spent as u64, 50);
+        sleep_less(spent as usize, 1000 / grid.max_framerate);
     }
 }
