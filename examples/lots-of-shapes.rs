@@ -1,31 +1,29 @@
 extern crate just_asc;
 use std::f64::consts::PI;
 
-fn offset_x_line(grid: &mut just_asc::Grid, offset: f64, x1: f64, y1: f64, x2: f64, y2: f64) {
-    grid.line(x1 + offset, y1, x2 + offset, y2);
-}
-
 fn sliding_angles(grid: &mut just_asc::Grid, frame: usize) {
     let angle = (2. * PI / 50.) * frame as f64;
-    let offset = angle.cos() * 4.;
+    grid.translate(angle.cos() * 4., 0.);
 
-    offset_x_line(grid, offset, 40., 3., 60., 3.);
+    grid.line(40., 3., 60., 3.);
 
-    offset_x_line(grid, offset, 15., 5., 1.5, 8.);
-    offset_x_line(grid, offset, 20., 5., 8., 9.);
-    offset_x_line(grid, offset, 25., 5., 12.5, 10.);
-    offset_x_line(grid, offset, 30., 5., 18., 11.);
-    offset_x_line(grid, offset, 35., 5., 24.5, 12.);
-    offset_x_line(grid, offset, 40., 5., 32., 13.);
-    offset_x_line(grid, offset, 45., 5., 41., 14.);
-    offset_x_line(grid, offset, 50., 5., 50., 15.);
-    offset_x_line(grid, offset, 55., 5., 59., 14.);
-    offset_x_line(grid, offset, 60., 5., 68., 13.);
-    offset_x_line(grid, offset, 65., 5., 75.5, 12.);
-    offset_x_line(grid, offset, 70., 5., 82., 11.);
-    offset_x_line(grid, offset, 75., 5., 87.5, 10.);
-    offset_x_line(grid, offset, 80., 5., 92., 9.);
-    offset_x_line(grid, offset, 85., 5., 98.5, 8.);
+    grid.line(15., 5., 1.5, 8.);
+    grid.line(20., 5., 8., 9.);
+    grid.line(25., 5., 12.5, 10.);
+    grid.line(30., 5., 18., 11.);
+    grid.line(35., 5., 24.5, 12.);
+    grid.line(40., 5., 32., 13.);
+    grid.line(45., 5., 41., 14.);
+    grid.line(50., 5., 50., 15.);
+    grid.line(55., 5., 59., 14.);
+    grid.line(60., 5., 68., 13.);
+    grid.line(65., 5., 75.5, 12.);
+    grid.line(70., 5., 82., 11.);
+    grid.line(75., 5., 87.5, 10.);
+    grid.line(80., 5., 92., 9.);
+    grid.line(85., 5., 98.5, 8.);
+
+    grid.clear_transform();
 }
 
 fn spinning_lines(grid: &mut just_asc::Grid, frame: usize) {
