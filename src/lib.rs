@@ -335,8 +335,6 @@ pub trait Draw {
     fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64);
     fn circle(&mut self, x: f64, y: f64, r: f64);
     fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64);
-    fn rotate(&mut self, radians: f64) -> Transform;
-    fn translate(&mut self, x: f64, y: f64) -> Transform;
 }
 
 #[derive(Debug)]
@@ -350,25 +348,14 @@ pub struct Transform<'a> {
 }
 
 impl<'a> Transform<'a> {
-    fn from_rotate(grid: &'a mut Grid, radians: f64) -> Transform<'a> {
-        Transform {
-            grid,
-            angle: radians,
-            angle_sin: radians.sin(),
-            angle_cos: radians.cos(),
-            x: 0.,
-            y: 0.,
-        }
-    }
-
-    fn from_translate(grid: &'a mut Grid, x: f64, y: f64) -> Transform<'a> {
+    fn from(grid: &'a mut Grid) -> Transform<'a> {
         Transform {
             grid,
             angle: 0.,
             angle_sin: 0.,
             angle_cos: 1.,
-            x,
-            y,
+            x: 0.,
+            y: 0.,
         }
     }
 
@@ -377,6 +364,20 @@ impl<'a> Transform<'a> {
             x: x * self.angle_cos - y * self.angle_sin + self.x,
             y: x * self.angle_sin + y * self.angle_cos + self.y,
         }
+    }
+
+    pub fn rotate(&mut self, radians: f64) -> &mut Self {
+        let new_angle = self.angle + radians;
+        self.angle = new_angle;
+        self.angle_sin = new_angle.sin();
+        self.angle_cos = new_angle.cos();
+        self
+    }
+
+    pub fn translate(&mut self, x: f64, y: f64) -> &mut Self {
+        self.x += x;
+        self.y += y;
+        self
     }
 }
 
@@ -393,27 +394,6 @@ impl<'a> Draw for Transform<'a> {
     fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64) {
         let p = self.point(x, y);
         self.grid.ellipse(p.x, p.y, a, b, self.angle + keel);
-    }
-    fn rotate(&mut self, radians: f64) -> Transform {
-        let new_angle = self.angle + radians;
-        Transform {
-            grid: self.grid,
-            angle: new_angle,
-            angle_sin: new_angle.sin(),
-            angle_cos: new_angle.cos(),
-            x: self.x,
-            y: self.y,
-        }
-    }
-    fn translate(&mut self, x: f64, y: f64) -> Transform {
-        Transform {
-            grid: self.grid,
-            angle: self.angle,
-            angle_sin: self.angle_sin,
-            angle_cos: self.angle_cos,
-            x: self.x + x,
-            y: self.y + y,
-        }
     }
 }
 
@@ -448,14 +428,6 @@ impl Draw for Grid {
             cell.render_ellipse(&ellipse);
         });
     }
-
-    fn rotate(&mut self, radians: f64) -> Transform {
-        Transform::from_rotate(self, radians)
-    }
-
-    fn translate(&mut self, x: f64, y: f64) -> Transform {
-        Transform::from_translate(self, x, y)
-    }
 }
 
 impl Grid {
@@ -480,6 +452,10 @@ impl Grid {
                 })
                 .collect(),
         }
+    }
+
+    pub fn transform(&mut self) -> Transform {
+        Transform::from(self)
     }
 
     fn each_cell_mut<F>(&mut self, f: F)

@@ -11,7 +11,8 @@ fn borders(grid: &mut just_asc::Grid) {
 
 fn spinning_triangle(grid: &mut just_asc::Grid, cycle: f64, height: f64) {
     let side_length = 2. * height / (3_f64.sqrt());
-    let mut temp = grid.translate(50., 50.);
+    let mut transform = grid.transform();
+    transform.translate(50., 50.).rotate(cycle);
 
     let x1 = 0.;
     let y1 = -2. * height / 3.;
@@ -20,9 +21,9 @@ fn spinning_triangle(grid: &mut just_asc::Grid, cycle: f64, height: f64) {
     let x3 = -side_length / 2.;
     let y3 = height / 3.;
 
-    temp.rotate(cycle).line(x1, y1, x2, y2);
-    temp.rotate(cycle).line(x2, y2, x3, y3);
-    temp.rotate(cycle).line(x3, y3, x1, y1);
+    transform.line(x1, y1, x2, y2);
+    transform.line(x2, y2, x3, y3);
+    transform.line(x3, y3, x1, y1);
 }
 
 fn triangle_stuff(grid: &mut just_asc::Grid, frame: usize) {
@@ -36,29 +37,30 @@ fn triangle_stuff(grid: &mut just_asc::Grid, frame: usize) {
 }
 
 fn circle_stuff(grid: &mut just_asc::Grid, frame: usize) {
-    let mut transform = grid.translate(50., 50.);
-    for i in 0..12 {
-        transform
-            .rotate(frame as f64 * 2. * PI / 240.)
-            .rotate(i as f64 * 2. * PI / 12.)
-            .circle(0., -42., 8.);
+    let mut transform = grid.transform();
+    transform
+        .translate(50., 50.)
+        .rotate(frame as f64 * 2. * PI / 240.);
+    for _ in 0..12 {
+        transform.rotate(2. * PI / 12.).circle(0., -42., 8.);
     }
 }
 
-fn spinner(mut grid: just_asc::Transform, initial_angle: f64) {
-    grid.ellipse(0., 0., 18., 6., initial_angle);
-    grid.ellipse(0., 0., 18., 6., initial_angle - PI / 4.);
-    grid.ellipse(0., 0., 18., 6., initial_angle - PI / 2.);
-    grid.ellipse(0., 0., 18., 6., initial_angle - (3. / 4.) * PI);
+fn spinner(mut transform: just_asc::Transform, x_offset: f64, y_offset: f64, initial_angle: f64) {
+    transform.translate(x_offset, y_offset);
+    transform.ellipse(0., 0., 18., 6., initial_angle);
+    transform.ellipse(0., 0., 18., 6., initial_angle - PI / 4.);
+    transform.ellipse(0., 0., 18., 6., initial_angle - PI / 2.);
+    transform.ellipse(0., 0., 18., 6., initial_angle - (3. / 4.) * PI);
 }
 
 fn ellipses(grid: &mut just_asc::Grid, frame: usize) {
     let slow = (2. * PI / 80.) * (frame + 75) as f64;
 
-    spinner(grid.translate(3., 3.), slow);
-    spinner(grid.translate(3., 97.), slow);
-    spinner(grid.translate(97., 3.), slow);
-    spinner(grid.translate(97., 97.), slow);
+    spinner(grid.transform(), 3., 3., slow);
+    spinner(grid.transform(), 3., 97., slow);
+    spinner(grid.transform(), 97., 3., slow);
+    spinner(grid.transform(), 97., 97., slow);
 }
 
 fn main() {

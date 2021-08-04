@@ -4,25 +4,26 @@ use std::f64::consts::PI;
 
 fn sliding_angles(grid: &mut just_asc::Grid, frame: usize) {
     let angle = (2. * PI / 50.) * frame as f64;
-    let mut translated = grid.translate(angle.cos() * 4., 0.);
+    let mut transform = grid.transform();
+    transform.translate(angle.cos() * 4., 0.);
 
-    translated.line(40., 3., 60., 3.);
+    transform.line(40., 3., 60., 3.);
 
-    translated.line(15., 5., 1.5, 8.);
-    translated.line(20., 5., 8., 9.);
-    translated.line(25., 5., 12.5, 10.);
-    translated.line(30., 5., 18., 11.);
-    translated.line(35., 5., 24.5, 12.);
-    translated.line(40., 5., 32., 13.);
-    translated.line(45., 5., 41., 14.);
-    translated.line(50., 5., 50., 15.);
-    translated.line(55., 5., 59., 14.);
-    translated.line(60., 5., 68., 13.);
-    translated.line(65., 5., 75.5, 12.);
-    translated.line(70., 5., 82., 11.);
-    translated.line(75., 5., 87.5, 10.);
-    translated.line(80., 5., 92., 9.);
-    translated.line(85., 5., 98.5, 8.);
+    transform.line(15., 5., 1.5, 8.);
+    transform.line(20., 5., 8., 9.);
+    transform.line(25., 5., 12.5, 10.);
+    transform.line(30., 5., 18., 11.);
+    transform.line(35., 5., 24.5, 12.);
+    transform.line(40., 5., 32., 13.);
+    transform.line(45., 5., 41., 14.);
+    transform.line(50., 5., 50., 15.);
+    transform.line(55., 5., 59., 14.);
+    transform.line(60., 5., 68., 13.);
+    transform.line(65., 5., 75.5, 12.);
+    transform.line(70., 5., 82., 11.);
+    transform.line(75., 5., 87.5, 10.);
+    transform.line(80., 5., 92., 9.);
+    transform.line(85., 5., 98.5, 8.);
 }
 
 fn spinning_lines(grid: &mut just_asc::Grid, frame: usize) {
