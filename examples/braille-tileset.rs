@@ -71,6 +71,7 @@ fn main() {
         cell_height: 36,
         tileset: just_asc::BRAILLE,
         max_framerate: Some(50),
+        print_timing: true,
     };
 
     just_asc::draw(config, |grid: &mut just_asc::Grid, frame: usize| {

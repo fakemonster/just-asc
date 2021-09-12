@@ -3,7 +3,7 @@ use crate::just_asc::Draw;
 use std::f64::consts::PI;
 
 fn sliding_angles(grid: &mut just_asc::Grid, frame: usize) {
-    let angle = (2. * PI / 50.) * frame as f64;
+    let angle = (2. * PI / 150.) * frame as f64;
     let mut transform = grid.transform();
     transform.translate(angle.cos() * 4., 0.);
 
@@ -27,7 +27,7 @@ fn sliding_angles(grid: &mut just_asc::Grid, frame: usize) {
 }
 
 fn spinning_lines(grid: &mut just_asc::Grid, frame: usize) {
-    let angle = (2. * PI / 60.) * frame as f64;
+    let angle = (2. * PI / 180.) * frame as f64;
     let x = angle.cos();
     let y = angle.sin();
 
@@ -62,7 +62,7 @@ fn circle_stuff(grid: &mut just_asc::Grid, frame: usize) {
 }
 
 fn ellipses(grid: &mut just_asc::Grid, frame: usize) {
-    let slow = (2. * PI / 80.) * frame as f64;
+    let slow = (2. * PI / 240.) * frame as f64;
     let x = slow.cos();
 
     grid.ellipse(20., 70., 10. - (8. * x), 10. + 8. * x, 0.);
@@ -77,10 +77,11 @@ fn ellipses(grid: &mut just_asc::Grid, frame: usize) {
 
 fn main() {
     let config = just_asc::GridConfig {
-        cell_width: 72,
-        cell_height: 36,
+        cell_width: 96,
+        cell_height: 48,
         tileset: just_asc::PURE_ASCII,
         max_framerate: Some(60),
+        print_timing: false,
     };
 
     just_asc::draw(config, |grid: &mut just_asc::Grid, frame: usize| {

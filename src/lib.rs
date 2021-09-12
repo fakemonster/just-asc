@@ -284,6 +284,7 @@ pub struct GridConfig {
     pub cell_height: usize,
     pub tileset: [char; 16],
     pub max_framerate: Option<usize>,
+    pub print_timing: bool,
 }
 
 // if the quadrants were listed top-left, top-right, bottom-left, bottom-right,
@@ -402,6 +403,7 @@ pub struct Grid {
     grid: Vec<Vec<Cell>>,
     tileset: [char; 16],
     max_framerate: usize,
+    print_timing: bool,
 }
 
 // put a _tiny_ bit of padding on the edges so lines at the edges register
@@ -440,6 +442,7 @@ impl Grid {
         Grid {
             tileset: config.tileset,
             max_framerate: config.max_framerate.unwrap_or(20),
+            print_timing: config.print_timing,
             grid: (0..cell_height)
                 .map(|j| {
                     (0..cell_width)
@@ -504,10 +507,28 @@ fn sleep_less(subtract_amount: usize, millis: usize) {
     ));
 }
 
+const TIMING_SIZE: usize = 50;
+
+fn print_average(frame: usize, arr: &[u128; TIMING_SIZE]) {
+    if frame > TIMING_SIZE {
+        println!(
+            "average time to paint (over {} frames): {}ms                       ",
+            TIMING_SIZE,
+            arr.iter().sum::<u128>() / TIMING_SIZE as u128
+        );
+    } else {
+        println!(
+            "average time to paint (over {} frames): calculating...             ",
+            TIMING_SIZE,
+        );
+    }
+}
+
 pub fn draw<F>(config: GridConfig, draw_fn: F)
 where
     F: Fn(&mut Grid, usize) -> (),
 {
+    let mut timing: [u128; TIMING_SIZE] = [4; TIMING_SIZE];
     let mut grid = Grid::new(config);
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
     for frame in 0.. {
@@ -519,7 +540,10 @@ where
         grid.clear();
 
         let spent = now.elapsed().as_millis();
-        println!("time per frame: {}ms                       ", spent);
+        if grid.print_timing {
+            timing[frame % TIMING_SIZE] = spent;
+            print_average(frame, &timing);
+        }
         print!("                         ");
         sleep_less(spent as usize, 1000 / grid.max_framerate);
     }
