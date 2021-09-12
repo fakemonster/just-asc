@@ -46,21 +46,23 @@ fn circle_stuff(grid: &mut just_asc::Grid, frame: usize) {
     }
 }
 
-fn spinner(mut transform: just_asc::Transform, x_offset: f64, y_offset: f64, initial_angle: f64) {
-    transform.translate(x_offset, y_offset);
-    transform.ellipse(0., 0., 18., 6., initial_angle);
-    transform.ellipse(0., 0., 18., 6., initial_angle - PI / 4.);
-    transform.ellipse(0., 0., 18., 6., initial_angle - PI / 2.);
-    transform.ellipse(0., 0., 18., 6., initial_angle - (3. / 4.) * PI);
+fn spinner(grid: &mut just_asc::Grid, x_offset: f64, y_offset: f64, initial_angle: f64) {
+    grid.with_transform(|mut transform| {
+        transform.translate(x_offset, y_offset);
+        transform.ellipse(0., 0., 18., 6., initial_angle);
+        transform.ellipse(0., 0., 18., 6., initial_angle - PI / 4.);
+        transform.ellipse(0., 0., 18., 6., initial_angle - PI / 2.);
+        transform.ellipse(0., 0., 18., 6., initial_angle - (3. / 4.) * PI);
+    });
 }
 
 fn ellipses(grid: &mut just_asc::Grid, frame: usize) {
     let slow = (2. * PI / 80.) * (frame + 75) as f64;
 
-    spinner(grid.transform(), 3., 3., slow);
-    spinner(grid.transform(), 3., 97., slow);
-    spinner(grid.transform(), 97., 3., slow);
-    spinner(grid.transform(), 97., 97., slow);
+    spinner(grid, 3., 3., slow);
+    spinner(grid, 3., 97., slow);
+    spinner(grid, 97., 3., slow);
+    spinner(grid, 97., 97., slow);
 }
 
 fn main() {

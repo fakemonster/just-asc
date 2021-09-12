@@ -458,6 +458,13 @@ impl Grid {
         Transform::from(self)
     }
 
+    pub fn with_transform<F>(&mut self, f: F)
+    where
+        F: Fn(Transform) -> (),
+    {
+        f(Transform::from(self))
+    }
+
     fn each_cell_mut<F>(&mut self, f: F)
     where
         F: Fn(&mut Cell) -> (),
