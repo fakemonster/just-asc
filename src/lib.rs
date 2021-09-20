@@ -7,24 +7,24 @@
 //! ```
 //! use std::f64::consts::PI;
 //!
-//! let config = just_asc::GridConfig {
-//!     cell_width: 40,
-//!     cell_height: 20,
-//!     tileset: just_asc::tilesets::PURE_ASCII,
-//!     max_framerate: Some(1),
-//!     print_timing: false,
-//! };
+//! just_asc::draw(
+//!     just_asc::DEFAULT_CONFIG,
+//!     |grid: &mut just_asc::Grid, frame: usize| {
+//!         grid.circle(50., 50., 50.);
 //!
-//! just_asc::draw(config, |grid: &mut just_asc::Grid, _frame: usize| {
-//!     grid.with_transform(|mut transform| {
-//!         transform.translate(50., 50.);
-//!         transform.circle(0., 0., 50.);
-//!         transform.rotate(PI / 4.);
-//!         transform.line(-25., 0., 25., 0.);
-//!         transform.rotate(PI / 2.);
-//!         transform.line(-25., 0., 25., 0.);
-//!     });
-//! });
+//!         grid.with_transform(|mut transform| {
+//!             transform.translate(50., 50.);
+//!             transform.rotate(PI / 20. * frame as f64);
+//!             transform.line(0., 10., 0., -40.);
+//!         });
+//!
+//!         grid.with_transform(|mut transform| {
+//!             transform.translate(50., 50.);
+//!             transform.rotate(PI / 240. * frame as f64);
+//!             transform.line(0., 5., 0., -20.);
+//!         });
+//!     },
+//! );
 //! ```
 
 mod shapes;
@@ -137,6 +137,15 @@ pub struct GridConfig {
     /// frame.
     pub print_timing: bool,
 }
+
+/// A "good-enough" config to get started: an ASCII tileset and a 72x36 grid.
+pub const DEFAULT_CONFIG: GridConfig = GridConfig {
+    cell_width: 72,
+    cell_height: 36,
+    tileset: crate::tilesets::PURE_ASCII,
+    max_framerate: None,
+    print_timing: false,
+};
 
 /// The `Draw` trait defines the actual shapes you can add to your canvas. This trait is present on
 /// both `Grid` and `Transform`.
