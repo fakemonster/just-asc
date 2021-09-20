@@ -79,7 +79,7 @@ fn main() {
     let config = just_asc::GridConfig {
         cell_width: 96,
         cell_height: 48,
-        tileset: just_asc::PURE_ASCII,
+        tileset: just_asc::tilesets::PURE_ASCII,
         max_framerate: Some(60),
         print_timing: false,
     };

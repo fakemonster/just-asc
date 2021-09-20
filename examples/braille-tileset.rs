@@ -69,7 +69,7 @@ fn main() {
     let config = just_asc::GridConfig {
         cell_width: 72,
         cell_height: 36,
-        tileset: just_asc::BRAILLE,
+        tileset: just_asc::tilesets::BRAILLE,
         max_framerate: Some(50),
         print_timing: true,
     };

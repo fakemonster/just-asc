@@ -1,4 +1,34 @@
+#![warn(missing_docs)]
+//! Have some fun, draw in your terminal! Or someone else's.
+//!
+//! This library provides a "canvas" for you to draw in, rendered in ASCII. Uses might include
+//! loading animations in CLI tools, or dorky projector backdrops at your party.
+//!
+//! ```
+//! use std::f64::consts::PI;
+//!
+//! let config = just_asc::GridConfig {
+//!     cell_width: 40,
+//!     cell_height: 20,
+//!     tileset: just_asc::tilesets::PURE_ASCII,
+//!     max_framerate: Some(1),
+//!     print_timing: false,
+//! };
+//!
+//! just_asc::draw(config, |grid: &mut just_asc::Grid, _frame: usize| {
+//!     grid.with_transform(|mut transform| {
+//!         transform.translate(50., 50.);
+//!         transform.circle(0., 0., 50.);
+//!         transform.rotate(PI / 4.);
+//!         transform.line(-25., 0., 25., 0.);
+//!         transform.rotate(PI / 2.);
+//!         transform.line(-25., 0., 25., 0.);
+//!     });
+//! });
+//! ```
+
 mod shapes;
+pub mod tilesets;
 
 use crate::shapes::{Circle, Ellipse, Line, Point, Rectangle};
 
@@ -78,67 +108,59 @@ impl Cell {
     }
 }
 
+/// The configuration used when instantiating a grid. A few configurations about "cells" are
+/// present: a cell represents one character on the rendered grid.
 #[derive(Debug)]
 pub struct GridConfig {
+    /// The width of your canvas (# of characters).
     pub cell_width: usize,
+
+    /// The height of your canvas (# of characters).
     pub cell_height: usize,
+
+    /// A list of characters to use based on quadrants of a cell filled.
+    ///
+    /// If the quadrants were listed top-left, top-right, bottom-left, bottom-right, with a 1 for
+    /// 'filled' and a `0` for 'unfilled', then each configuration of a cell would be some binary
+    /// number < 16, e.g.
+    ///
+    /// - 1010 (10): top-left and bottom-left are filled in. In PURE_ASCII that looks like `[`.
+    /// - 1101 (13): top-left, top-right and bottom-right are filled in. In PURE_ASCII that looks
+    /// like `¶`.
+    /// - 0100 (4): only top-right is filled in. In PURE_ASCII that looks like `'`.
     pub tileset: [char; 16],
+
+    /// The maximum frames per second your grid will render. Defaults to 20.
     pub max_framerate: Option<usize>,
+
+    /// Print a debug statement that displays a rolling average of how long it takes to render a
+    /// frame.
     pub print_timing: bool,
 }
 
-// if the quadrants were listed top-left, top-right, bottom-left, bottom-right,
-// with a 1 for 'filled' and a `0` for 'unfilled', then each configuration of a
-// cell would be some binary number < 16, e.g.
-//
-// - 1010 (10): top-left and bottom-left are filled in
-// - 1101 (13): top-left, top-right and bottom-right are filled in
-// - 0100 (4): only top-right is filled in
-pub const PURE_ASCII: [char; 16] = [
-    ' ',  // 0000
-    '.',  // 0001
-    ',',  // 0010
-    '_',  // 0011
-    '\'', // 0100
-    ']',  // 0101
-    '/',  // 0110
-    'd',  // 0111
-    '`',  // 1000
-    '\\', // 1001
-    '[',  // 1010
-    'b',  // 1011
-    '"',  // 1100
-    '¶', //  1101
-    'P',  // 1110
-    '#',  // 1111
-];
-
-pub const BRAILLE: [char; 16] = [
-    '\u{2800}', // 0000
-    '\u{28a0}', // 0001
-    '\u{2844}', // 0010
-    '\u{28e4}', // 0011
-    '\u{2818}', // 0100
-    '\u{28b8}', // 0101
-    '\u{285c}', // 0110
-    '\u{28fc}', // 0111
-    '\u{2803}', // 1000
-    '\u{28a3}', // 1001
-    '\u{2847}', // 1010
-    '\u{28e7}', // 1011
-    '\u{281b}', // 1100
-    '\u{28bb}', // 1101
-    '\u{285f}', // 1110
-    '\u{28ff}', // 1111
-];
-
+/// The `Draw` trait defines the actual shapes you can add to your canvas. This trait is present on
+/// both `Grid` and `Transform`.
 pub trait Draw {
+    /// `line` draws a line on your `Grid`! the first two arguments are your starting x and y, the
+    /// latter two arguments are your ending x and y.
     fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64);
-    fn circle(&mut self, x: f64, y: f64, r: f64);
+
+    /// `ellipse` draws ellipses. The first two parameters are the position of its center, followed
+    /// by its x axis length and y axis length. The last parameter is its "keel", i.e. its rotation
+    /// around the center (in radians). Set to `0` if you don't want to rotate! Or PI, if you're
+    /// feeling spicy.
     fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64);
+
+    /// `circle` draws a circle, where the first two parameters are the position of its center, and
+    /// the last is its radius. You could accomplish this with `ellipse`, but using `circle` will
+    /// give a slight performance boost.
+    fn circle(&mut self, x: f64, y: f64, r: f64);
 }
 
 #[derive(Debug)]
+/// Transforms are grid "wrappers" that keep a mutable reference to the main Grid. The trick is
+/// that they can be freely rotated and translated (moved left-right-up-down). This makes it _much_
+/// easier to draw groups of things that spin, orbit, or travel.
 pub struct Transform<'a> {
     grid: &'a mut Grid,
     angle: f64,
@@ -167,6 +189,7 @@ impl<'a> Transform<'a> {
         }
     }
 
+    /// Rotates a transform (in radians).
     pub fn rotate(&mut self, radians: f64) -> &mut Self {
         let new_angle = self.angle + radians;
         self.angle = new_angle;
@@ -175,6 +198,7 @@ impl<'a> Transform<'a> {
         self
     }
 
+    /// Moves a transform along x and y axes.
     pub fn translate(&mut self, x: f64, y: f64) -> &mut Self {
         self.x += x;
         self.y += y;
@@ -199,6 +223,8 @@ impl<'a> Draw for Transform<'a> {
 }
 
 #[derive(Debug)]
+/// A Grid is what you draw on. Rather than acting directly on cells, a Grid gives you a 100x100
+/// canvas, with (0,0) in the top-left corner.
 pub struct Grid {
     grid: Vec<Vec<Cell>>,
     tileset: [char; 16],
@@ -257,10 +283,14 @@ impl Grid {
         }
     }
 
+    /// Creates a Transform from a Grid. Transform takes a mutable reference, so you won't be able
+    /// to use the Grid while the Transform is in scope.
     pub fn transform(&mut self) -> Transform {
         Transform::from(self)
     }
 
+    /// Takes a closure which _receives_ a Transform. This is a convenience function to keep the
+    /// scopes of a Transform nice and clear.
     pub fn with_transform<F>(&mut self, f: F)
     where
         F: Fn(Transform) -> (),
@@ -324,6 +354,11 @@ fn print_average(frame: usize, arr: &[u128; TIMING_SIZE]) {
     }
 }
 
+/// Our core function. This kicks off an unending drawing, taking two arguments:
+///
+/// 1. a GridConfig
+/// 2. a drawing closure, which will receive a fresh grid (drawings are erased every frame), and
+///    the current frame count.
 pub fn draw<F>(config: GridConfig, draw_fn: F)
 where
     F: Fn(&mut Grid, usize) -> (),
