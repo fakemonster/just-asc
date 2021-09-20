@@ -143,22 +143,86 @@ pub struct GridConfig {
 pub trait Draw {
     /// `line` draws a line on your `Grid`! the first two arguments are your starting x and y, the
     /// latter two arguments are your ending x and y.
+    ///
+    /// ```
+    /// grid.line(0., 0., 100., 100.); // a line from top-left to bottom-right
+    /// grid.line(100., 0., 0., 100.); // a line from top-right to bottom-left
+    /// grid.line(60., 50., 75., 35.);
+    /// grid.line(75., 35., 90., 50.);
+    /// grid.line(90., 50., 75., 65.);
+    /// grid.line(75., 65., 60., 50.);
+    /// ```
+    ///
+    /// ```text
+    /// "_                         .d"
+    ///  '¶b                      d"
+    ///     ¶b                  d"
+    ///       "b,            .d"
+    ///        '"_         .d"
+    ///           ¶b     .d"   .d¶_
+    ///             "b,.d"   .d"  '¶_
+    ///              ]##,   ]#      ]#
+    ///            .d" '"b   '¶_  .d"
+    ///          .d"      "b,  '¶d"
+    ///        ._P         '"_
+    ///      .d"              "b,
+    ///    .d"                  "_
+    ///  .d"                      "b,
+    /// d"`                         "_
+    /// ```
     fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64);
 
     /// `ellipse` draws ellipses. The first two parameters are the position of its center, followed
     /// by its x axis length and y axis length. The last parameter is its "keel", i.e. its rotation
     /// around the center (in radians). Set to `0` if you don't want to rotate! Or PI, if you're
     /// feeling spicy.
+    ///
+    /// ```
+    /// grid.ellipse(40., 20., 30., 10., 0.);
+    /// grid.ellipse(70., 30., 30., 10., PI / 4.);
+    /// ```
+    ///
+    /// ```text
+    ///        .________,       __,
+    ///    ._P""        ""¶__d""` "¶,
+    ///    P             .d"¶      .[
+    ///    b           .d"  d      d
+    ///    '"b__      .P__d"`     d`
+    ///        '""""""P"`       _P`
+    ///              ]`       _P`
+    ///              'b_ .__P"`
+    ///                '""
+    /// ```
     fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64);
 
     /// `circle` draws a circle, where the first two parameters are the position of its center, and
     /// the last is its radius. You could accomplish this with `ellipse`, but using `circle` will
     /// give a slight performance boost.
+    ///
+    /// ```
+    /// grid.circle(25., 25., 30.);
+    /// grid.circle(45., 45., 30.);
+    /// ```
+    ///
+    /// ```text
+    /// _P"         "¶_
+    /// `             'b
+    ///         ._d"""""b_,
+    ///       _P"       [ "¶_
+    ///      d`         [   'b
+    ///     ]`         d`    '[
+    /// b,  ]        .d`      [
+    ///  "¶_d     __P"        [
+    ///     '#""""`          d`
+    ///      'b,           .d`
+    ///        "¶__     __P"
+    ///           '"""""`
+    /// ```
     fn circle(&mut self, x: f64, y: f64, r: f64);
 }
 
 #[derive(Debug)]
-/// Transforms are grid "wrappers" that keep a mutable reference to the main Grid. The trick is
+/// Transforms are grid "wrappers" that keep a mutable reference to the main `Grid`. The trick is
 /// that they can be freely rotated and translated (moved left-right-up-down). This makes it _much_
 /// easier to draw groups of things that spin, orbit, or travel.
 pub struct Transform<'a> {
@@ -225,6 +289,11 @@ impl<'a> Draw for Transform<'a> {
 #[derive(Debug)]
 /// A Grid is what you draw on. Rather than acting directly on cells, a Grid gives you a 100x100
 /// canvas, with (0,0) in the top-left corner.
+///
+/// ```
+/// grid.line(0., 0., 100., 100.); // a line from top-left to bottom-right
+/// grid.circle(50., 50., 25.); // a circle dead center
+/// ```
 pub struct Grid {
     grid: Vec<Vec<Cell>>,
     tileset: [char; 16],
