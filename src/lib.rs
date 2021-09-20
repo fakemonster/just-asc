@@ -354,7 +354,27 @@ fn print_average(frame: usize, arr: &[u128; TIMING_SIZE]) {
     }
 }
 
-/// Our core function. This kicks off an unending drawing, taking two arguments:
+/// Just draw an image once. Takes two arguments:
+///
+/// 1. a GridConfig
+/// 2. a drawing closure, which will receive a fresh grid
+pub fn once<F>(config: GridConfig, draw_fn: F)
+where
+    F: Fn(&mut Grid) -> (),
+{
+    let mut grid = Grid::new(config);
+    let now = std::time::Instant::now();
+
+    draw_fn(&mut grid);
+    grid.print();
+
+    let spent = now.elapsed().as_millis();
+    if grid.print_timing {
+        println!("time to paint: {}ms                       ", spent);
+    }
+}
+
+/// Our core animation function. This kicks off an unending drawing, taking two arguments:
 ///
 /// 1. a GridConfig
 /// 2. a drawing closure, which will receive a fresh grid (drawings are erased every frame), and

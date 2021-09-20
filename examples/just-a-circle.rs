@@ -4,14 +4,14 @@ use std::f64::consts::PI;
 
 fn main() {
     let config = just_asc::GridConfig {
-        cell_width: 40,
-        cell_height: 20,
+        cell_width: 30,
+        cell_height: 15,
         tileset: just_asc::tilesets::PURE_ASCII,
         max_framerate: Some(1),
         print_timing: false,
     };
 
-    just_asc::draw(config, |grid: &mut just_asc::Grid, _frame: usize| {
+    just_asc::once(config, |grid: &mut just_asc::Grid| {
         grid.with_transform(|mut transform| {
             transform.translate(50., 50.);
             transform.circle(0., 0., 50.);
