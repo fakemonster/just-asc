@@ -6,25 +6,31 @@
 //!
 //! ```
 //! use std::f64::consts::PI;
+//! use crate::just_asc::Draw;
 //!
-//! just_asc::draw(
-//!     just_asc::DEFAULT_CONFIG,
-//!     |grid: &mut just_asc::Grid, frame: usize| {
-//!         grid.circle(50., 50., 50.);
+//! fn main() {
+//!     just_asc::draw(
+//!         just_asc::DEFAULT_CONFIG,
+//!         |grid: &mut just_asc::Grid, frame: usize| {
+//!             grid.circle(50., 50., 50.);
 //!
-//!         grid.with_transform(|mut transform| {
-//!             transform.translate(50., 50.);
-//!             transform.rotate(PI / 20. * frame as f64);
-//!             transform.line(0., 10., 0., -40.);
-//!         });
+//!             grid.with_transform(|mut transform| {
+//!                 transform.translate(50., 50.);
+//!                 transform.rotate(PI / 20. * frame as f64);
+//!                 transform.line(0., 10., 0., -40.);
+//!             });
 //!
-//!         grid.with_transform(|mut transform| {
-//!             transform.translate(50., 50.);
-//!             transform.rotate(PI / 240. * frame as f64);
-//!             transform.line(0., 5., 0., -20.);
-//!         });
-//!     },
-//! );
+//!             grid.with_transform(|mut transform| {
+//!                 transform.translate(50., 50.);
+//!                 transform.rotate(PI / 240. * frame as f64);
+//!                 transform.line(0., 5., 0., -20.);
+//!             });
+//!             # if frame > 30 {
+//!             #   std::process::exit(0)
+//!             # }
+//!         },
+//!     );
+//! }
 //! ```
 
 mod shapes;
@@ -154,12 +160,22 @@ pub trait Draw {
     /// latter two arguments are your ending x and y.
     ///
     /// ```
+    /// # use std::f64::consts::PI;
+    /// # use crate::just_asc::Draw;
+    ///
+    /// # fn main() {
+    /// #     just_asc::once(
+    /// #         just_asc::DEFAULT_CONFIG,
+    /// #         |grid: &mut just_asc::Grid| {
     /// grid.line(0., 0., 100., 100.); // a line from top-left to bottom-right
     /// grid.line(100., 0., 0., 100.); // a line from top-right to bottom-left
     /// grid.line(60., 50., 75., 35.);
     /// grid.line(75., 35., 90., 50.);
     /// grid.line(90., 50., 75., 65.);
     /// grid.line(75., 65., 60., 50.);
+    /// #         },
+    /// #     );
+    /// # }
     /// ```
     ///
     /// ```text
@@ -187,8 +203,18 @@ pub trait Draw {
     /// feeling spicy.
     ///
     /// ```
+    /// # use std::f64::consts::PI;
+    /// # use crate::just_asc::Draw;
+    ///
+    /// # fn main() {
+    /// #     just_asc::once(
+    /// #         just_asc::DEFAULT_CONFIG,
+    /// #         |grid: &mut just_asc::Grid| {
     /// grid.ellipse(40., 20., 30., 10., 0.);
     /// grid.ellipse(70., 30., 30., 10., PI / 4.);
+    /// #         },
+    /// #     );
+    /// # }
     /// ```
     ///
     /// ```text
@@ -209,8 +235,18 @@ pub trait Draw {
     /// give a slight performance boost.
     ///
     /// ```
+    /// # use std::f64::consts::PI;
+    /// # use crate::just_asc::Draw;
+    ///
+    /// # fn main() {
+    /// #     just_asc::once(
+    /// #         just_asc::DEFAULT_CONFIG,
+    /// #         |grid: &mut just_asc::Grid| {
     /// grid.circle(25., 25., 30.);
     /// grid.circle(45., 45., 30.);
+    /// #         },
+    /// #     );
+    /// # }
     /// ```
     ///
     /// ```text
@@ -300,8 +336,18 @@ impl<'a> Draw for Transform<'a> {
 /// canvas, with (0,0) in the top-left corner.
 ///
 /// ```
+/// # use std::f64::consts::PI;
+/// # use crate::just_asc::Draw;
+///
+/// # fn main() {
+/// #     just_asc::once(
+/// #         just_asc::DEFAULT_CONFIG,
+/// #         |grid: &mut just_asc::Grid| {
 /// grid.line(0., 0., 100., 100.); // a line from top-left to bottom-right
 /// grid.circle(50., 50., 25.); // a circle dead center
+/// #         },
+/// #     );
+/// # }
 /// ```
 pub struct Grid {
     grid: Vec<Vec<Cell>>,
