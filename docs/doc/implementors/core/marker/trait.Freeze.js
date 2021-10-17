@@ -1,3 +1,0 @@
-(function() {var implementors = {};
-implementors["just_asc"] = [{"text":"impl Freeze for <a class=\"struct\" href=\"just_asc/struct.GridConfig.html\" title=\"struct just_asc::GridConfig\">GridConfig</a>","synthetic":true,"types":["just_asc::GridConfig"]},{"text":"impl&lt;'a&gt; Freeze for <a class=\"struct\" href=\"just_asc/struct.Transform.html\" title=\"struct just_asc::Transform\">Transform</a>&lt;'a&gt;","synthetic":true,"types":["just_asc::Transform"]},{"text":"impl Freeze for <a class=\"struct\" href=\"just_asc/struct.Grid.html\" title=\"struct just_asc::Grid\">Grid</a>","synthetic":true,"types":["just_asc::Grid"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
