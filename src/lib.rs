@@ -114,8 +114,13 @@ impl Cell {
     }
 }
 
-/// The configuration used when instantiating a grid. A few configurations about "cells" are
-/// present: a cell represents one character on the rendered grid.
+/// The configuration used when instantiating a grid.
+///
+/// If you're just getting started and you don't care much about your configuration, try out the
+/// [`DEFAULT_CONFIG`].
+///
+/// **Note:** A few configurations mention "cells": a cell represents one character on the rendered
+/// grid.
 #[derive(Debug)]
 pub struct GridConfig {
     /// The width of your canvas (# of characters).
@@ -124,19 +129,25 @@ pub struct GridConfig {
     /// The height of your canvas (# of characters).
     pub cell_height: usize,
 
-    /// A list of characters to use based on quadrants of a cell filled.
+    /// A list of characters to use in your drawing, one for each combination of filled quadrants
+    /// in a cell.
+    ///
+    /// Some nice defaults are provided for you in the [`tilesets`] module.
+    ///
+    /// ### Making your own tilesets
     ///
     /// If the quadrants were listed top-left, top-right, bottom-left, bottom-right, with a 1 for
     /// 'filled' and a `0` for 'unfilled', then each configuration of a cell would be some binary
     /// number < 16, e.g.
     ///
-    /// - 1010 (10): top-left and bottom-left are filled in. In PURE_ASCII that looks like `[`.
-    /// - 1101 (13): top-left, top-right and bottom-right are filled in. In PURE_ASCII that looks
-    /// like `¶`.
-    /// - 0100 (4): only top-right is filled in. In PURE_ASCII that looks like `'`.
+    /// - 1010 (10): top-left and bottom-left are filled in. In [`tilesets::PURE_ASCII`] that looks
+    /// like `[`.
+    /// - 1101 (13): top-left, top-right and bottom-right are filled in. In
+    /// [`tilesets::PURE_ASCII`] that looks like `¶`.
+    /// - 0100 (4): only top-right is filled in. In [`tilesets::PURE_ASCII`] that looks like `'`.
     pub tileset: [char; 16],
 
-    /// The maximum frames per second your grid will render. Defaults to 20.
+    /// The maximum frames per second your grid will render. Defaults to `20`.
     pub max_framerate: Option<usize>,
 
     /// Print a debug statement that displays a rolling average of how long it takes to render a
@@ -145,6 +156,19 @@ pub struct GridConfig {
 }
 
 /// A "good-enough" config to get started: an ASCII tileset and a 72x36 grid.
+/// ```
+/// use crate::just_asc::Draw;
+///
+/// fn main() {
+///     just_asc::draw(
+///         just_asc::DEFAULT_CONFIG,
+///         |grid: &mut just_asc::Grid, frame: usize| {
+///             // whatever you like!
+///             # std::process::exit(0)
+///         },
+///     );
+/// }
+/// ```
 pub const DEFAULT_CONFIG: GridConfig = GridConfig {
     cell_width: 72,
     cell_height: 36,
@@ -154,15 +178,15 @@ pub const DEFAULT_CONFIG: GridConfig = GridConfig {
 };
 
 /// The `Draw` trait defines the actual shapes you can add to your canvas. This trait is present on
-/// both `Grid` and `Transform`.
+/// both [`Grid`] and [`Transform`].
 pub trait Draw {
-    /// `line` draws a line on your `Grid`! the first two arguments are your starting x and y, the
+    /// draws a line on your [`Grid`]! the first two arguments are your starting x and y, the
     /// latter two arguments are your ending x and y.
     ///
     /// ```
     /// # use std::f64::consts::PI;
     /// # use crate::just_asc::Draw;
-    ///
+    /// #
     /// # fn main() {
     /// #     just_asc::once(
     /// #         just_asc::DEFAULT_CONFIG,
@@ -197,15 +221,15 @@ pub trait Draw {
     /// ```
     fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64);
 
-    /// `ellipse` draws ellipses. The first two parameters are the position of its center, followed
+    /// draws ellipses. The first two parameters are the position of its center, followed
     /// by its x axis length and y axis length. The last parameter is its "keel", i.e. its rotation
-    /// around the center (in radians). Set to `0` if you don't want to rotate! Or PI, if you're
-    /// feeling spicy.
+    /// around the center (in radians). Set to `0` if you don't want to rotate! Or
+    /// [`PI`](`std::f64::consts::PI`), if you're feeling spicy.
     ///
     /// ```
     /// # use std::f64::consts::PI;
     /// # use crate::just_asc::Draw;
-    ///
+    /// #
     /// # fn main() {
     /// #     just_asc::once(
     /// #         just_asc::DEFAULT_CONFIG,
@@ -230,14 +254,14 @@ pub trait Draw {
     /// ```
     fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64);
 
-    /// `circle` draws a circle, where the first two parameters are the position of its center, and
-    /// the last is its radius. You could accomplish this with `ellipse`, but using `circle` will
-    /// give a slight performance boost.
+    /// draws a circle, where the first two parameters are the position of its center, and the last
+    /// is its radius. You could accomplish this with [`ellipse`](`Draw::ellipse`), but using
+    /// `circle` will give a slight performance boost.
     ///
     /// ```
     /// # use std::f64::consts::PI;
     /// # use crate::just_asc::Draw;
-    ///
+    /// #
     /// # fn main() {
     /// #     just_asc::once(
     /// #         just_asc::DEFAULT_CONFIG,
@@ -267,9 +291,11 @@ pub trait Draw {
 }
 
 #[derive(Debug)]
-/// Transforms are grid "wrappers" that keep a mutable reference to the main `Grid`. The trick is
-/// that they can be freely rotated and translated (moved left-right-up-down). This makes it _much_
-/// easier to draw groups of things that spin, orbit, or travel.
+/// Transforms are temporary grid "wrappers" that can be freely rotated and translated (moved
+/// left-right-up-down).
+///
+/// This makes it much easier to draw groups of things that spin, orbit, or travel, and return to
+/// an unchanged grid when you're done drawing them.
 pub struct Transform<'a> {
     grid: &'a mut Grid,
     angle: f64,
@@ -321,24 +347,25 @@ impl<'a> Draw for Transform<'a> {
         let p2 = self.point(x2, y2);
         self.grid.line(p1.x, p1.y, p2.x, p2.y);
     }
-    fn circle(&mut self, x: f64, y: f64, r: f64) {
-        let p = self.point(x, y);
-        self.grid.circle(p.x, p.y, r);
-    }
     fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64) {
         let p = self.point(x, y);
         self.grid.ellipse(p.x, p.y, a, b, self.angle + keel);
     }
+    fn circle(&mut self, x: f64, y: f64, r: f64) {
+        let p = self.point(x, y);
+        self.grid.circle(p.x, p.y, r);
+    }
 }
 
 #[derive(Debug)]
-/// A Grid is what you draw on. Rather than acting directly on cells, a Grid gives you a 100x100
-/// canvas, with (0,0) in the top-left corner.
+/// A Grid is what you draw on. Rather than concerning yourself with each character and how its
+/// position maps to your drawing, a Grid gives you a 100x100 canvas, with (0,0) in the top-left
+/// corner.
 ///
 /// ```
 /// # use std::f64::consts::PI;
 /// # use crate::just_asc::Draw;
-///
+/// #
 /// # fn main() {
 /// #     just_asc::once(
 /// #         just_asc::DEFAULT_CONFIG,
@@ -367,17 +394,17 @@ impl Draw for Grid {
         });
     }
 
-    fn circle(&mut self, x: f64, y: f64, r: f64) {
-        let circle = Circle::new(Point::new(x, y), r);
-        self.each_cell_mut(|cell| {
-            cell.render_circle(&circle);
-        });
-    }
-
     fn ellipse(&mut self, x: f64, y: f64, a: f64, b: f64, keel: f64) {
         let ellipse = Ellipse::new(Point::new(x, y), a, b, keel);
         self.each_cell_mut(|cell| {
             cell.render_ellipse(&ellipse);
+        });
+    }
+
+    fn circle(&mut self, x: f64, y: f64, r: f64) {
+        let circle = Circle::new(Point::new(x, y), r);
+        self.each_cell_mut(|cell| {
+            cell.render_circle(&circle);
         });
     }
 }
@@ -407,14 +434,14 @@ impl Grid {
         }
     }
 
-    /// Creates a Transform from a Grid. Transform takes a mutable reference, so you won't be able
-    /// to use the Grid while the Transform is in scope.
+    /// Creates a [`Transform`] from a Grid. Transforms provide a nice structure for making weird
+    /// (temporary) transformations to your grid: just throw it out when you're done!
     pub fn transform(&mut self) -> Transform {
         Transform::from(self)
     }
 
-    /// Takes a closure which _receives_ a Transform. This is a convenience function to keep the
-    /// scopes of a Transform nice and clear.
+    /// Takes a closure which _receives_ a [`Transform`]. This is a convenience function to keep the
+    /// scope of a Transform nice and clear.
     pub fn with_transform<F>(&mut self, f: F)
     where
         F: Fn(Transform) -> (),
@@ -478,10 +505,12 @@ fn print_average(frame: usize, arr: &[u128; TIMING_SIZE]) {
     }
 }
 
-/// Just draw an image once. Takes two arguments:
+/// Just draw an image once.
 ///
-/// 1. a GridConfig
-/// 2. a drawing closure, which will receive a fresh grid
+/// Takes two arguments:
+///
+/// 1. a [`GridConfig`]
+/// 2. a drawing closure, which will receive a fresh [`Grid`]
 pub fn once<F>(config: GridConfig, draw_fn: F)
 where
     F: Fn(&mut Grid) -> (),
@@ -498,11 +527,13 @@ where
     }
 }
 
-/// Our core animation function. This kicks off an unending drawing, taking two arguments:
+/// Our core animation function.
 ///
-/// 1. a GridConfig
-/// 2. a drawing closure, which will receive a fresh grid (drawings are erased every frame), and
-///    the current frame count.
+/// This kicks off an unending drawing, taking two arguments:
+///
+/// 1. a [`GridConfig`]
+/// 2. a drawing closure, which will receive a fresh [`Grid`] (drawings are erased every frame),
+///    and the current frame count.
 pub fn draw<F>(config: GridConfig, draw_fn: F)
 where
     F: Fn(&mut Grid, usize) -> (),

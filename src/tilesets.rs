@@ -1,4 +1,4 @@
-//! Out-of-the-box tilesets for your GridConfig.
+//! Out-of-the-box tilesets for your [GridConfig](crate::GridConfig).
 
 /// Actual ASCII characters. Nice and crunchy.
 ///
